@@ -155,8 +155,8 @@ will not survive. Use object storage (e.g. Cloudinary / S3) for uploads.
 
 ## October 2026 update
 
-* **Super-user:** `python manage.py migrate` creates the admin account **Mamuddeen** (password in
-  `core/accounts.py`). It works at `/admin/` and `/mainadmin/`. **Change the password after the first sign-in.**
+* **Super-user:** `python manage.py migrate` creates the admin account **Devmusteey** when
+  `DJANGO_SUPERUSER_PASSWORD` is set. It works at `/admin/` and `/mainadmin/`.
   Override with `DJANGO_SUPERUSER_USERNAME` / `DJANGO_SUPERUSER_PASSWORD`; repair or reset any time with
   `python manage.py ensure_superuser`. (On Vercel the migration runs automatically on cold start.)
 * **All 20 LGAs:** `core/lga_data.py` is the single source of truth for the 20 Local Governments and their
@@ -188,7 +188,7 @@ save in one is invisible to another. The admin shows a red warning when this is 
 1. Create a free Postgres database at https://neon.tech (or Supabase) and copy its connection string.
 2. Vercel -> Project -> Settings -> Environment Variables: add `DATABASE_URL` = that string, and
    `DJANGO_SECRET_KEY` = any long random text. Apply to Production.
-3. Redeploy. Migrations run automatically and the `Mamuddeen` super-user is created again.
+3. Redeploy. Migrations run automatically and the `Devmusteey` super-user is created again.
 4. Sign in at `/admin/` and add your photos/people again; they now persist and show instantly.
 
 Pages are also sent with `Cache-Control: no-store`, so browsers/CDNs never show a stale copy.

@@ -8,7 +8,7 @@ import os
 
 from django.core.exceptions import ImproperlyConfigured
 
-DEFAULT_USERNAME = "Mamuddeen"
+DEFAULT_USERNAME = "Devmusteey"
 
 
 def ensure_superuser(user_model=None):
