@@ -1,0 +1,750 @@
+﻿[
+    {
+        "key":  "ajingi",
+        "name":  "Ajingi",
+        "wards":  [
+                      "Ajingi",
+                      "Balare",
+                      "Chula",
+                      "Dabin Kanawa",
+                      "Dundun",
+                      "Gafasa",
+                      "Gurduba",
+                      "Kunkurawa",
+                      "Toranke",
+                      "Ungawar Bai"
+                  ]
+    },
+    {
+        "key":  "albasu",
+        "name":  "Albasu",
+        "wards":  [
+                      "Albasu Central",
+                      "Bataiya",
+                      "Chamarana",
+                      "Daho",
+                      "Fanda",
+                      "Faragai",
+                      "Gagarame",
+                      "Hungu",
+                      "Saya-Saya",
+                      "Tsangaya"
+                  ]
+    },
+    {
+        "key":  "bagwai",
+        "name":  "Bagwai",
+        "wards":  [
+                      "Bagwai",
+                      "Dangada",
+                      "Gadanya",
+                      "Gogori",
+                      "Kiyawa",
+                      "Kwajali",
+                      "Rimin Dako",
+                      "Romo",
+                      "Sare-Sare",
+                      "Wuro Bagga"
+                  ]
+    },
+    {
+        "key":  "bebeji",
+        "name":  "Bebeji",
+        "wards":  [
+                      "Anadariya",
+                      "Baguda",
+                      "Bebeji",
+                      "Damau",
+                      "Durmawa",
+                      "Gargai",
+                      "Gwarmai",
+                      "Kofa",
+                      "Kuki",
+                      "Rahama",
+                      "Ranka",
+                      "Rantan",
+                      "Tariwa",
+                      "Wak"
+                  ]
+    },
+    {
+        "key":  "bichi",
+        "name":  "Bichi",
+        "wards":  [
+                      "Badume",
+                      "Bichi",
+                      "Danzabuwa",
+                      "Fagolo",
+                      "Kaukau",
+                      "Kwamarawa",
+                      "Kyalli",
+                      "Muntsira",
+                      "Saye",
+                      "Waire",
+                      "Yallami"
+                  ]
+    },
+    {
+        "key":  "bunkure",
+        "name":  "Bunkure",
+        "wards":  [
+                      "Barkum",
+                      "Bunkure",
+                      "Bono",
+                      "Chirin",
+                      "Gafan",
+                      "Gurjiya",
+                      "Gwamma",
+                      "Kulluwa",
+                      "Kumurya",
+                      "Sanda"
+                  ]
+    },
+    {
+        "key":  "dala",
+        "name":  "Dala",
+        "wards":  [
+                      "Adakawa",
+                      "Bakin Ruwa",
+                      "Dala",
+                      "Dogon Nama",
+                      "Gobirawa",
+                      "Gwammaja",
+                      "Kabuwaya",
+                      "Kantudu",
+                      "Kofar Mazugal",
+                      "Kofar Ruwa",
+                      "Madigawa",
+                      "Yalwa"
+                  ]
+    },
+    {
+        "key":  "danbata",
+        "name":  "Danbata",
+        "wards":  [
+                      "Ajumawa",
+                      "Danbatta East",
+                      "Danbatta West",
+                      "Fagwalawa",
+                      "Goron Maje",
+                      "Gwanda",
+                      "Gwarabjawa",
+                      "Kore",
+                      "Saidawa",
+                      "Sansan"
+                  ]
+    },
+    {
+        "key":  "dawaki_kudu",
+        "name":  "Dawaki Kudu",
+        "wards":  [
+                      "Dabar Kwari",
+                      "Danbagiwa",
+                      "Dawaki",
+                      "Dawakiji",
+                      "Dosan",
+                      "Gano",
+                      "Gurjiya",
+                      "Jido",
+                      "Tamburawa",
+                      "Tsakuwa",
+                      "Unguwar Duniya",
+                      "Yanbarau",
+                      "Yankatsari",
+                      "Yargaya",
+                      "Zogarawa"
+                  ]
+    },
+    {
+        "key":  "dawaki_tofa",
+        "name":  "Dawaki Tofa",
+        "wards":  [
+                      "Dawaki East",
+                      "Dawaki West",
+                      "Dawanau",
+                      "Dan Guguwa",
+                      "Ganduje",
+                      "Gargari",
+                      "Jalli",
+                      "Kwa",
+                      "Marke",
+                      "Tattarawa",
+                      "Tumfafi"
+                  ]
+    },
+    {
+        "key":  "doguwa",
+        "name":  "Doguwa",
+        "wards":  [
+                      "Dariya",
+                      "Dogon Kawo",
+                      "Duguwa",
+                      "Falgore",
+                      "Maraku",
+                      "Ragada",
+                      "Ririwai",
+                      "Tagwaye",
+                      "Unguwar Natsohuwa",
+                      "Zainabi"
+                  ]
+    },
+    {
+        "key":  "fagge",
+        "name":  "Fagge",
+        "wards":  [
+                      "Fagge A",
+                      "Fagge B",
+                      "Fagge C",
+                      "Fagge D",
+                      "Fagge E",
+                      "Kwachiri",
+                      "Rijiyar Lemo",
+                      "Sabongari East",
+                      "Sabongari West",
+                      "Yammata"
+                  ]
+    },
+    {
+        "key":  "gabasawa",
+        "name":  "Gabasawa",
+        "wards":  [
+                      "Gabasawa",
+                      "Garun Danga",
+                      "Joda",
+                      "Karmami",
+                      "Mekiya",
+                      "Tarauni",
+                      "Yantar Arewa",
+                      "Yautar Kudu",
+                      "Yumbu",
+                      "Zakirai",
+                      "Zugachi"
+                  ]
+    },
+    {
+        "key":  "garko",
+        "name":  "Garko",
+        "wards":  [
+                      "Dal",
+                      "Garin Ali",
+                      "Garko",
+                      "Gurjiya",
+                      "Kafin Malamai",
+                      "Katumari",
+                      "Kwas",
+                      "Raba",
+                      "Sarina",
+                      "Zakarawa"
+                  ]
+    },
+    {
+        "key":  "garun_malam",
+        "name":  "Garun Malam",
+        "wards":  [
+                      "Chiromawa",
+                      "Dorawar-Sallau",
+                      "Fankurun",
+                      "Garun Babba",
+                      "Garun Malam",
+                      "Jobawa",
+                      "Kadawa",
+                      "Makwaro",
+                      "Yad Akwari",
+                      "Yalwan  Yadakwari"
+                  ]
+    },
+    {
+        "key":  "gaya",
+        "name":  "Gaya",
+        "wards":  [
+                      "Balan",
+                      "Gaya Arewa",
+                      "Gaya Kudu",
+                      "Gamarya",
+                      "Gamoji",
+                      "Kademi",
+                      "Kazurawa",
+                      "Maimakawa",
+                      "Shagogo",
+                      "Wudilawa"
+                  ]
+    },
+    {
+        "key":  "gezawa",
+        "name":  "Gezawa",
+        "wards":  [
+                      "Babawa",
+                      "Gawo",
+                      "Gezawa",
+                      "Jogana",
+                      "Ketawa",
+                      "Mesar-Tudu",
+                      "Sararin-Gezawa",
+                      "Tsamiya-Babba",
+                      "Tumbau",
+                      "Wangara",
+                      "Zango"
+                  ]
+    },
+    {
+        "key":  "gwale",
+        "name":  "Gwale",
+        "wards":  [
+                      "Dandago",
+                      "Diso",
+                      "Dorayi",
+                      "Galadanchi",
+                      "Goron Dutse",
+                      "Gwale",
+                      "Gyaranya",
+                      "Kabuga",
+                      "Mandawari",
+                      "Sani Mai Magge"
+                  ]
+    },
+    {
+        "key":  "gwarzo",
+        "name":  "Gwarzo",
+        "wards":  [
+                      "Getso",
+                      "Gwarzo",
+                      "Jama\u0027 A",
+                      "Kara",
+                      "Kutama",
+                      "Lakwaya",
+                      "Madadi",
+                      "Mainika",
+                      "Sabon Birni",
+                      "Unguwar Tudu"
+                  ]
+    },
+    {
+        "key":  "kabo",
+        "name":  "Kabo",
+        "wards":  [
+                      "Dugabau",
+                      "Durun",
+                      "Gammo",
+                      "Garo",
+                      "Godiya",
+                      "Gude",
+                      "Hauwade",
+                      "Kabo",
+                      "Kanwa",
+                      "Masanawa"
+                  ]
+    },
+    {
+        "key":  "kano_municipal",
+        "name":  "Kano Municipal",
+        "wards":  [
+                      "Chedi",
+                      "Dan\u0027agundi",
+                      "Gandun Albasa",
+                      "Jakara",
+                      "Kankarofi",
+                      "Shahuchi",
+                      "Sharada",
+                      "Sheshe",
+                      "Tudun Nufawa",
+                      "Tudun Wazirchi",
+                      "Yakasai",
+                      "Zaitawa",
+                      "Zango"
+                  ]
+    },
+    {
+        "key":  "karaye",
+        "name":  "Karaye",
+        "wards":  [
+                      "Daura",
+                      "Kafin Dafga",
+                      "Karaye",
+                      "Kurugu",
+                      "Kwanyawa",
+                      "Tudun Kaya",
+                      "Turawa",
+                      "Unguwar Hajji",
+                      "Yammedi",
+                      "Yola"
+                  ]
+    },
+    {
+        "key":  "kibiya",
+        "name":  "Kibiya",
+        "wards":  [
+                      "Durba",
+                      "Fammar",
+                      "Fassi",
+                      "Kadigawa",
+                      "Kahu",
+                      "Kibiya  I",
+                      "Kibiya Ii",
+                      "Nariya",
+                      "Tarai",
+                      "Unguwar Gai"
+                  ]
+    },
+    {
+        "key":  "kiru",
+        "name":  "Kiru",
+        "wards":  [
+                      "Ba\u0027awa",
+                      "Badafi",
+                      "Bargoni",
+                      "Bauda",
+                      "Dangora",
+                      "Dansohiya",
+                      "Dashi",
+                      "Galadimawa",
+                      "Kiru",
+                      "Kogo",
+                      "Maraku",
+                      "Tsaudawa",
+                      "Yako",
+                      "Yalwa",
+                      "Zuwo"
+                  ]
+    },
+    {
+        "key":  "kumbotso",
+        "name":  "Kumbotso",
+        "wards":  [
+                      "Challawa",
+                      "Chiranchi",
+                      "Danbare",
+                      "Danmaliki",
+                      "Guringawa",
+                      "Kumbotso",
+                      "Kureken Sani",
+                      "Mariri",
+                      "Na\u0027ibawa",
+                      "Panshekara",
+                      "Unguwar Rimi"
+                  ]
+    },
+    {
+        "key":  "kunchi",
+        "name":  "Kunchi",
+        "wards":  [
+                      "Bumai",
+                      "Garin Sheme",
+                      "Gwarmai",
+                      "Kasuwar Kuka",
+                      "Kunchi",
+                      "Matan Fada",
+                      "Ridawa",
+                      "Shamakawa",
+                      "Shuwaki",
+                      "Yandadi"
+                  ]
+    },
+    {
+        "key":  "kura",
+        "name":  "Kura",
+        "wards":  [
+                      "Dalili",
+                      "Dan Hassan",
+                      "Dukawa",
+                      "Gundutse",
+                      "Karfi",
+                      "Kosawa",
+                      "Kura",
+                      "Kurunsumau",
+                      "Rigar Duka",
+                      "Tanawa"
+                  ]
+    },
+    {
+        "key":  "madobi",
+        "name":  "Madobi",
+        "wards":  [
+                      "Burji",
+                      "Cinkoso",
+                      "Galinja",
+                      "Gora",
+                      "Kafin Agur",
+                      "Kanwa",
+                      "Kaura Mata",
+                      "Kubaraci",
+                      "Kwankwaso",
+                      "Madobi",
+                      "Rikadawa",
+                      "Yakun"
+                  ]
+    },
+    {
+        "key":  "makoda",
+        "name":  "Makoda",
+        "wards":  [
+                      "Babbar Riga",
+                      "Durma",
+                      "Jibga",
+                      "Kadandani",
+                      "Koguna",
+                      "Koren Tatso",
+                      "Maitsidau",
+                      "Makoda",
+                      "Satame",
+                      "Tangaji",
+                      "Wailare"
+                  ]
+    },
+    {
+        "key":  "minjibir",
+        "name":  "Minjibir",
+        "wards":  [
+                      "Azore",
+                      "Gandurwawa",
+                      "Kantama",
+                      "Kunya",
+                      "Kuru",
+                      "Kwarkiya",
+                      "Minjibir",
+                      "Sarbi",
+                      "Tsakiya",
+                      "Tsakuwa",
+                      "Wasai"
+                  ]
+    },
+    {
+        "key":  "nasarawa",
+        "name":  "Nasarawa",
+        "wards":  [
+                      "Dakata",
+                      "Gama",
+                      "Gawuna",
+                      "Gwagwarwa",
+                      "Giginyu",
+                      "Hotoro North",
+                      "Hotoro South",
+                      "Kawaji",
+                      "Kaura Goje",
+                      "Tudun Murtala",
+                      "Tudun Wada"
+                  ]
+    },
+    {
+        "key":  "rano",
+        "name":  "Rano",
+        "wards":  [
+                      "Dawaki",
+                      "Lausu",
+                      "Madachi",
+                      "Rano",
+                      "Rurum Sabon-Gari",
+                      "Rurum Tsohon-Gari",
+                      "Saji",
+                      "Yalwa",
+                      "Zinyau",
+                      "Zurgu"
+                  ]
+    },
+    {
+        "key":  "rimin_gado",
+        "name":  "Rimin Gado",
+        "wards":  [
+                      "Butu-Butu",
+                      "Dawakin Gulu",
+                      "Doka Dawa",
+                      "Dugurawa",
+                      "Gulu",
+                      "Jili",
+                      "Karofin Yashi",
+                      "Rimin Gado",
+                      "Sakaratsa",
+                      "Tamawa",
+                      "Yalwan Danziyal",
+                      "Zango Dan Abdu"
+                  ]
+    },
+    {
+        "key":  "rogo",
+        "name":  "Rogo",
+        "wards":  [
+                      "Beli",
+                      "Falgore",
+                      "Fulatan",
+                      "Gwangwan",
+                      "Jajaye",
+                      "Rogo Ruma",
+                      "Rogo Sabon Gari",
+                      "Ruwan Bago",
+                      "Zarewa",
+                      "Zoza"
+                  ]
+    },
+    {
+        "key":  "shanono",
+        "name":  "Shanono",
+        "wards":  [
+                      "Alajawa",
+                      "Dutsen-Bakoshi",
+                      "Faruruwa",
+                      "Goron Dutse",
+                      "Kadamu",
+                      "Kokiya",
+                      "Leni",
+                      "Shakogi",
+                      "Shanono",
+                      "Tsaure"
+                  ]
+    },
+    {
+        "key":  "sumaila",
+        "name":  "Sumaila",
+        "wards":  [
+                      "Gala",
+                      "Gani",
+                      "Garfa",
+                      "Gediya",
+                      "Kanawa",
+                      "Magami",
+                      "Masu",
+                      "Rimi",
+                      "Rumo",
+                      "Sitti",
+                      "Sumaila"
+                  ]
+    },
+    {
+        "key":  "takai",
+        "name":  "Takai",
+        "wards":  [
+                      "Bagwaro",
+                      "Durbunde",
+                      "Fajewa",
+                      "Falali",
+                      "Faruruwa",
+                      "Kachako",
+                      "Karfi",
+                      "Kuka",
+                      "Takai",
+                      "Zuga"
+                  ]
+    },
+    {
+        "key":  "tarauni",
+        "name":  "Tarauni",
+        "wards":  [
+                      "Babban Giji",
+                      "Darmanawa",
+                      "Daurawa",
+                      "Gyadi-Gyadi Arewa",
+                      "Gyadi-Gyadi Kudu",
+                      "Hotoro (Nnpc)",
+                      "Kauyen  Alu",
+                      "Tarauni",
+                      "Unguwar Gano",
+                      "Unguwa  Uku"
+                  ]
+    },
+    {
+        "key":  "tofa",
+        "name":  "Tofa",
+        "wards":  [
+                      "Dindere",
+                      "Doka",
+                      "Gajida",
+                      "Ginsawa",
+                      "Jauben Kudu",
+                      "Janguza",
+                      "Kwami",
+                      "Lambu",
+                      "Langel",
+                      "Tofa",
+                      "Unguwar Rimi",
+                      "Wangara",
+                      "Yalwa Karama",
+                      "Yanoko",
+                      "Yarimawa"
+                  ]
+    },
+    {
+        "key":  "tsanyawa",
+        "name":  "Tsanyawa",
+        "wards":  [
+                      "Daddarawa",
+                      "Dunbulun",
+                      "Gozaki",
+                      "Gurun",
+                      "Kabagiwa",
+                      "Tatsan",
+                      "Tsanyawa",
+                      "Yanganau",
+                      "Yankamaye",
+                      "Zarogi"
+                  ]
+    },
+    {
+        "key":  "tudun_wada",
+        "name":  "Tudun Wada",
+        "wards":  [
+                      "Baburi",
+                      "Burumburum",
+                      "Dalawa",
+                      "Jandutse",
+                      "Jita",
+                      "Karefa",
+                      "Nata\u0027ala",
+                      "Sabon Gari",
+                      "Tsohogari",
+                      "Shuwaki",
+                      "Yaryasa"
+                  ]
+    },
+    {
+        "key":  "ungogo",
+        "name":  "Ungogo",
+        "wards":  [
+                      "Bachirawa",
+                      "Gayawa",
+                      "Kadawa",
+                      "Karo",
+                      "Panisau",
+                      "Rangaza",
+                      "Rijiyar Zaki",
+                      "Tudun Fulani",
+                      "Ungogo",
+                      "Yadakunya",
+                      "Zango"
+                  ]
+    },
+    {
+        "key":  "warawa",
+        "name":  "Warawa",
+        "wards":  [
+                      "Amarawa",
+                      "Danlasan",
+                      "Garin Dau",
+                      "Gogel",
+                      "Imawa",
+                      "Jemagu",
+                      "Jigawa",
+                      "J/Galadima",
+                      "Katarkawa",
+                      "Madari Mata",
+                      "Tamburawar Gabas",
+                      "Tangar",
+                      "Warawa",
+                      "\u0027Yan Dalla",
+                      "\u0027Yangizo"
+                  ]
+    },
+    {
+        "key":  "wudil",
+        "name":  "Wudil",
+        "wards":  [
+                      "Achika",
+                      "Dagumawa",
+                      "Dankaza",
+                      "Darki",
+                      "Indabo",
+                      "Kausani",
+                      "Lajawa",
+                      "Sabon Gari",
+                      "Utai",
+                      "Wudil"
+                  ]
+    }
+]

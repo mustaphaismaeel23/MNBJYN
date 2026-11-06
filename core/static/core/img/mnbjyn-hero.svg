@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800" role="img" aria-labelledby="title">
+  <title id="title">MNBJYN Kano State community network</title>
+  <rect width="800" height="800" fill="#142B4A"/>
+  <circle cx="400" cy="400" r="248" fill="none" stroke="#DA0010" stroke-width="4" opacity=".8"/>
+  <circle cx="400" cy="400" r="188" fill="none" stroke="#FFFFFF" stroke-width="2" opacity=".3"/>
+  <g fill="#FFFFFF">
+    <circle cx="400" cy="270" r="34"/>
+    <circle cx="286" cy="456" r="34"/>
+    <circle cx="514" cy="456" r="34"/>
+  </g>
+  <g fill="none" stroke="#FFFFFF" stroke-width="8" stroke-linecap="round" opacity=".85">
+    <path d="M383 303 304 422"/>
+    <path d="M417 303 496 422"/>
+    <path d="M320 456h160"/>
+  </g>
+  <text x="400" y="575" fill="#FFFFFF" font-family="Arial, sans-serif" font-size="46" font-weight="700" letter-spacing="3" text-anchor="middle">MNBJYN</text>
+  <text x="400" y="625" fill="#C2CCDA" font-family="Arial, sans-serif" font-size="22" letter-spacing="5" text-anchor="middle">KANO STATE</text>
+</svg>

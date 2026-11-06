@@ -1,0 +1,21 @@
+{% extends "core/base.html" %}
+
+{% block title %}Thank you &middot; {{ ORG_SHORT }}{% endblock %}
+
+{% block content %}
+<section class="section thanks on-white">
+  <div class="wrap narrow center">
+    <div class="check-big" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><path pathLength="30" d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+    </div>
+    <p class="kicker">Registration received</p>
+    <h1>Thank you, {{ info.name }}!</h1>
+    <p class="lead">You are now on the list of the {{ ORG_NAME }}. A member of our team will reach out to you about the next steps in your ward and local government.</p>
+    <p class="ref">Your reference: <strong>{{ info.ref }}</strong></p>
+    <div class="hero-cta center">
+      <a class="btn btn-lg" href="{% url 'core:home' %}">Back to home</a>
+      <a class="btn btn-lg btn-outline" href="{% url 'core:home' %}#objectives">See our objectives</a>
+    </div>
+  </div>
+</section>
+{% endblock %}

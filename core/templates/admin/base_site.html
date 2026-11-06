@@ -1,0 +1,10 @@
+{% extends "admin/base.html" %}
+{% load static %}
+{% block title %}{{ title }} | MNBJYN Administration{% endblock %}
+{% block branding %}<div id="site-name"><a href="{% url 'admin:index' %}">MNBJYN Administration</a></div>{% endblock %}
+{% block extrastyle %}{{ block.super }}<link rel="stylesheet" href="{% static 'core/css/admin.css' %}">{% endblock %}
+{% block messages %}{{ block.super }}{% if db_warning %}
+<ul class="messagelist"><li class="error"><strong>Changes will NOT reliably appear on the website.</strong>
+This site is running on a temporary database. In Vercel &rarr; Settings &rarr; Environment Variables, add
+<code>DATABASE_URL</code> (a free Neon or Supabase Postgres URL), then redeploy. See README &ldquo;Make /admin changes permanent&rdquo;.</li></ul>
+{% endif %}{% endblock %}

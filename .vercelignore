@@ -1,0 +1,9 @@
+# Not needed at runtime
+IMG-*.jpg
+db.sqlite3
+media/*
+venv/
+.venv/
+__pycache__/
+*.pyc
+.git/

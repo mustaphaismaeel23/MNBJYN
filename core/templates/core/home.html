@@ -1,0 +1,352 @@
+{% extends "core/base.html" %}
+{% load static %}
+
+{% block content %}
+
+<!-- HERO -->
+<section class="hero on-white">
+  <div class="wrap hero-grid">
+    <div class="hero-copy">
+      <p class="eyebrow"> &middot; {{ STATE_NAME }} State &middot; 2027</p>
+      <h1>Welcome to </h1>
+      <h1> <em>{{ ORG_NAME }}</em>  </h1>
+      <h1> Explore our digital platform</h1>
+      <p class="lead">The {{ ORG_NAME }} is a youth-centered, non-profit political organization built on a strong belief in youth inclusion in democratic processes.</p>
+      <div class="hero-cta">
+        <a class="btn btn-lg" href="{% url 'core:register' %}">Register to join the network <span aria-hidden="true">&rarr;</span></a>
+        <a class="btn btn-lg btn-outline" href="#about">Learn more</a>
+      </div>
+      <ul class="hero-facts">
+        <li><strong data-count="2026">2026</strong><span>Founded</span></li>
+        <li><strong data-count="2027">2027</strong><span>Governorship bid</span></li>
+      </ul>
+    </div>
+
+    <figure class="hero-photo">
+      <div class="photo-frame">
+        <img src="{% if site_settings.hero_image %}{{ site_settings.hero_image.url }}{% else %}{% static 'core/img/gallery/nasiru-bala-jaoji-portrait.jpg' %}{% endif %}" width="800" height="800" fetchpriority="high" decoding="async"
+             alt="{% if site_settings.hero_image %}{{ site_settings.hero_caption|default:'MNBJYN Kano State' }}{% else %}Portrait of Malam Nasiru Bala Ja'oji{% endif %}">
+        <span class="photo-wipe" aria-hidden="true"></span>
+      </div>
+      <figcaption>
+        <span>{{ site_settings.hero_caption|default:"MNBJYN Kano State" }}</span>
+        <span class="photo-badge">Kano State 2027</span>
+      </figcaption>
+      <div class="lga-box">
+        <p class="lga-box-title"><strong>{{ LGA_COUNT }} LGAs</strong><span>Select a local government, then a ward</span></p>
+        <div class="lga-picker" id="lga-picker">
+          <div>
+            <label class="sr-only" for="lga-select">Local Government Area</label>
+            <select id="lga-select" class="lga-select" aria-controls="lga-result">
+              <option value="">{{ LGA_COUNT }} LGAs &mdash; select one</option>
+            </select>
+          </div>
+          <div>
+            <label class="sr-only" for="ward-select">Ward</label>
+            <select id="ward-select" class="lga-select" hidden>
+              <option value="">Select ward</option>
+            </select>
+          </div>
+        </div>
+        <p class="lga-result" id="lga-result" role="status" aria-live="polite" hidden></p>
+      </div>
+    </figure>
+  </div>
+</section>
+
+<div class="flag" aria-hidden="true"><i></i><i></i><i></i></div>
+
+<!-- ABOUT -->
+<section class="section on-white" id="about">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <span class="sec-num" aria-hidden="true">01</span>
+      <p class="kicker">Overview</p>
+      <h2>Who we are</h2>
+    </div>
+    <div class="about-grid">
+      <div class="prose reveal">
+        {% for p in content.OVERVIEW %}<p{% if forloop.first %} class="drop"{% endif %}>{{ p }}</p>{% endfor %}
+      </div>
+      <div class="vm-stack">
+        <article class="vm-card vision on-red reveal">
+          <h3>Vision</h3>
+          <p>{{ content.VISION }}</p>
+        </article>
+        <article class="vm-card mission on-black reveal">
+          <h3>Mission</h3>
+          <p>{{ content.MISSION }}</p>
+        </article>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- VALUES MARQUEE -->
+<div class="marquee" aria-hidden="true">
+  <div class="marquee-track">
+    <div class="marquee-group">{% for v in content.CORE_VALUES %}<span>{{ v }}</span><i></i>{% endfor %}</div>
+    <div class="marquee-group" aria-hidden="true">{% for v in content.CORE_VALUES %}<span>{{ v }}</span><i></i>{% endfor %}</div>
+  </div>
+</div>
+
+<!-- OBJECTIVES -->
+<section class="section on-black" id="objectives">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <span class="sec-num" aria-hidden="true">02</span>
+      <p class="kicker">What we work for</p>
+      <h2>Our objectives</h2>
+      <p class="sub">{{ content.OBJECTIVES_INTRO }}</p>
+    </div>
+    <div class="obj-grid">
+      {% for o in content.OBJECTIVES %}
+      <article class="obj-card on-white reveal">
+        <span class="obj-num">{{ forloop.counter|stringformat:"02d" }}</span>
+        <h3>{{ o.title }}</h3>
+        <p>{{ o.text }}</p>
+        {% if o.points %}
+          <ul class="ticks">{% for pt in o.points %}<li>{{ pt }}</li>{% endfor %}</ul>
+        {% endif %}
+        {% if o.roles %}
+          <p class="mini-title">{{ o.subtitle }}</p>
+          <dl class="role-list">
+            {% for name, desc in o.roles %}<div><dt>{{ name }}</dt><dd>{{ desc }}</dd></div>{% endfor %}
+          </dl>
+        {% endif %}
+      </article>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<!-- STRATEGIES -->
+<section class="section on-white" id="strategies">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <span class="sec-num" aria-hidden="true">03</span>
+      <p class="kicker">How we deliver</p>
+      <h2>Strategies for success</h2>
+      <p class="sub">{{ content.STRATEGIES_INTRO }}</p>
+    </div>
+    <ol class="strat-list">
+      {% for title, text in content.STRATEGIES %}
+      <li class="reveal"><div><h3>{{ title }}</h3><p>{{ text }}</p></div></li>
+      {% endfor %}
+    </ol>
+  </div>
+</section>
+
+<!-- CORE VALUES -->
+<section class="values on-red" id="values">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <span class="sec-num" aria-hidden="true">04</span>
+      <p class="kicker">What guides us</p>
+      <h2>Core values</h2>
+    </div>
+    <ul class="value-row">
+      {% for v in content.CORE_VALUES %}<li class="reveal"><span>{{ forloop.counter|stringformat:"02d" }}</span>{{ v }}</li>{% endfor %}
+    </ul>
+  </div>
+</section>
+
+<!-- STAKEHOLDERS + ELECTORAL PARTICIPATION -->
+<section class="section on-white" id="engagement">
+  <div class="wrap two-col">
+    <article class="panel light on-white reveal">
+      <p class="kicker">Partnerships</p>
+      <h2>Strategic stakeholder contact</h2>
+      <p>{{ content.STAKEHOLDER_TEXT }}</p>
+    </article>
+    <article class="panel dark on-black reveal">
+      <p class="kicker">Civic duty</p>
+      <h2>Electoral process participation and oversight</h2>
+      <p>{{ content.ELECTORAL_INTRO }}</p>
+      <ul class="ticks light">{% for pt in content.ELECTORAL_POINTS %}<li>{{ pt }}</li>{% endfor %}</ul>
+    </article>
+  </div>
+</section>
+
+<!-- SITUATION ROOM -->
+<section class="section sit on-black" id="situation-room">
+  <div class="wrap">
+    <div class="sit-intro reveal">
+      <div>
+        <span class="sec-num" aria-hidden="true">05</span>
+        <p class="kicker">Election day</p>
+        <h2>The Situation Room</h2>
+        <p class="sub">{{ content.SITUATION_ROOM }}</p>
+      </div>
+      <a class="btn btn-lg" href="{% url 'core:register' %}">Volunteer for election duty <span aria-hidden="true">&rarr;</span></a>
+    </div>
+
+    <div class="sit-live reveal" id="sit-live">
+      <div class="sit-bar">
+        <b id="sit-mode-label">LIVE &bull; Results simulation</b>
+        <span class="sit-clock" id="sit-clock" aria-hidden="true"></span>
+        <span class="sit-ctrl">
+          <button type="button" id="sit-pause" class="sit-btn" aria-pressed="false">Pause</button>
+          <button type="button" id="sit-restart" class="sit-btn">Restart</button>
+        </span>
+      </div>
+      
+
+      <div class="sit-totals">
+        <div class="sit-stat sit-stat-main"><span class="sit-stat-label">Total votes counted &middot; {{ STATE_NAME }} State</span><strong id="sit-total-votes">0</strong></div>
+        <div class="sit-stat"><span class="sit-stat-label">Polling units reported</span><strong><span id="sit-total-pus">0</span><small> / <span id="sit-total-pus-all">0</span></small></strong></div>
+        <div class="sit-stat"><span class="sit-stat-label">Wards reporting</span><strong><span id="sit-total-wards">0</span><small> / <span id="sit-total-wards-all">0</span></small></strong></div>
+      </div>
+
+      <div class="sit-body">
+        <div class="sit-select">
+          <div>
+            <label for="sit-lga">Results by LGA</label>
+            <select id="sit-lga" class="lga-select"><option value="">All of {{ STATE_NAME }} State</option></select>
+          </div>
+          <div id="sit-ward-wrap" hidden>
+            <label for="sit-ward">Ward</label>
+            <select id="sit-ward" class="lga-select"><option value="">All wards</option></select>
+          </div>
+          <div id="sit-pu-wrap" hidden>
+            <label for="sit-pu">Polling unit</label>
+            <select id="sit-pu" class="lga-select"><option value="">All polling units</option></select>
+          </div>
+        </div>
+        <div class="sit-col">
+          <div class="sit-scope" id="sit-scope" aria-live="off">
+            <h3 id="sit-scope-title">{{ STATE_NAME }} State</h3>
+            <p class="sit-scope-sub" id="sit-scope-sub"></p>
+            <div class="sit-progress"><div class="sit-progress-fill" id="sit-progress-fill"></div></div>
+            <ul class="sit-parties" id="sit-parties"></ul>
+            <dl class="sit-facts" id="sit-facts"></dl>
+          </div>
+        </div>
+        <div class="sit-col">
+          <h3 class="sit-h" id="sit-feed-title">Latest submissions</h3>
+          <ol class="sit-feed" id="sit-feed" aria-live="off"></ol>
+        </div>
+      </div>
+    </div>
+    <noscript><p class="sub">The live results simulation needs JavaScript.</p></noscript>
+  </div>
+</section>
+
+<!-- LEADERSHIP -->
+<section class="section on-white" id="leadership">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <span class="sec-num" aria-hidden="true">06</span>
+      <p class="kicker">Organizational structure</p>
+      <h2> Executive Committee</h2>
+      <p class="sub">{{ content.STRUCTURE_INTRO }}</p>
+    </div>
+    <div class="exec-grid">
+      {% for title, gender, desc in content.EXECUTIVES %}
+      <article class="exec-card reveal">
+        <div class="avatar" aria-hidden="true">{{ forloop.counter|stringformat:"02d" }}</div>
+        <div>
+          <h3>{{ title }}</h3>
+          <span class="tag">{{ gender }}</span>
+          <p>{{ desc }}</p>
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<!-- EXECUTIVES -->
+<section class="section on-white people-section" id="executives">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <span class="sec-num" aria-hidden="true">07</span>
+      <p class="kicker">Leadership</p>
+      <h2>Our Patrons</h2>
+    </div>
+    {% if executives %}
+    <ul class="people-grid">
+      {% for p in executives %}
+      <li class="person-card reveal">
+        <div class="person-photo">{% if p.image %}<img src="{{ p.image.url }}" alt="{{ p.name }}" loading="lazy">{% else %}<span aria-hidden="true">{{ p.initials }}</span>{% endif %}</div>
+        <h3>{{ p.name }}</h3>
+        {% if p.subname %}<p>{{ p.subname }}</p>{% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="people-empty">Our executives will be announced soon.</p>
+    {% endif %}
+  </div>
+</section>
+
+<!-- TEAM -->
+<section class="section on-black people-section" id="team">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <span class="sec-num" aria-hidden="true">08</span>
+      <p class="kicker">The people behind the network</p>
+      <h2>Meet the team</h2>
+    </div>
+    {% if team %}
+    <ul class="people-grid team-grid">
+      {% for p in team %}
+      <li class="person-card reveal">
+        <div class="person-photo">{% if p.image %}<img src="{{ p.image.url }}" alt="{{ p.name }}" loading="lazy">{% else %}<span aria-hidden="true">{{ p.initials }}</span>{% endif %}</div>
+        <h3>{{ p.name }}</h3>
+        {% if p.subname %}<p>{{ p.subname }}</p>{% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="people-empty">Our team will be announced soon.</p>
+    {% endif %}
+  </div>
+</section>
+
+<!-- GALLERY -->
+<section class="section on-black" id="gallery">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <span class="sec-num" aria-hidden="true">09</span>
+      <p class="kicker">In pictures</p>
+      <h2>Photo gallery</h2>
+      <p class="sub">Moments from our meetings, community outreach and events across {{ STATE_NAME }} State.</p>
+    </div>
+    <div class="gallery">
+      {% for g in gallery %}
+        <figure class="g-item reveal">
+          <img src="{{ g.image.url }}" alt="{{ g.caption|default:'MNBJYN event photo' }}" loading="lazy">
+          {% if g.caption %}<figcaption>{{ g.caption }}</figcaption>{% endif %}
+        </figure>
+      {% empty %}
+        {% for photo in gallery_fallback %}
+          <figure class="g-item reveal">
+            <img src="{% static photo.image %}" alt="{{ photo.caption }}" loading="lazy">
+            <figcaption>{{ photo.caption }}</figcaption>
+          </figure>
+        {% endfor %}
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<!-- FINAL CTA -->
+<section class="cta-band on-red" id="join">
+  <div class="wrap cta-inner reveal">
+    <div>
+      <h2>Be part of the movement.</h2>
+      <p>Register today and take your place in a structured, grassroots network of politically informed youths across {{ STATE_NAME }} State.</p>
+    </div>
+    <a class="btn btn-lg" href="{% url 'core:register' %}">Register now <span aria-hidden="true">&rarr;</span></a>
+  </div>
+</section>
+
+<div class="flag" aria-hidden="true"><i></i><i></i><i></i></div>
+
+{{ lga_data|json_script:"lga-data" }}
+{{ situation_config|json_script:"sit-config" }}
+<script src="{% static 'core/js/lga.js' %}" defer></script>
+<script src="{% static 'core/js/situation.js' %}" defer></script>
+
+{% endblock %}

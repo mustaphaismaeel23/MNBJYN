@@ -1,0 +1,92 @@
+{% extends "admin/index.html" %}
+{% load static %}
+
+{% block extrastyle %}{{ block.super }}
+<style>
+  :root { --primary:#142B4A; --secondary:#203B5E; --accent:#14B8A6; --link-fg:#142B4A; --link-hover-color:#0F766E; --selected-row:#F0FDFA; }
+  #header { background:#142B4A; color:#fff; border-bottom:3px solid #14B8A6; }
+  #branding h1, #branding h1 a:link, #branding h1 a:visited, #user-tools, #user-tools a { color:#fff; }
+  .module h2, .module caption, .inline-group h2 { background:#142B4A; }
+  div.breadcrumbs { background:#203B5E; }
+  .button, input[type=submit], input[type=button], .submit-row input, a.button { background:#142B4A; border-radius:6px; }
+  .button:hover, input[type=submit]:hover, input[type=button]:hover, .submit-row input:hover, a.button:hover { background:#203B5E; }
+  .button.default, input[type=submit].default, .submit-row input.default { background:#14B8A6; color:#142B4A; }
+  a:link, a:visited { color:#142B4A; }
+  a:focus, a:hover { color:#0F766E; }
+  #changelist-filter li.selected a { color:#0F766E !important; }
+  .ssbyn-dash { color:#142B4A; }
+</style>
+<style>
+  /* MNBJYN dashboard: Executive Navy palette. */
+  .ssbyn-dash{--red:#14B8A6;--white:#FFFFFF;--black:#142B4A;--navy:#142B4A;--teal:#14B8A6;display:grid;gap:16px;margin-bottom:24px;min-width:0}
+  .ssbyn-dash *{box-sizing:border-box}
+  .ssbyn-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px}
+  .ssbyn-card{background:var(--white);color:var(--black);border:1px solid #E1E8F0;border-top:4px solid var(--navy);border-radius:10px;padding:14px 16px;min-width:0}
+  .ssbyn-card b{display:block;font-size:30px;line-height:1.1;font-weight:800;color:var(--black)}
+  .ssbyn-card span{display:block;margin-top:4px;font-size:12px;font-weight:700;color:var(--black);text-transform:uppercase;letter-spacing:.05em}
+  .ssbyn-card.warn{border-top-color:var(--red)}
+  .ssbyn-card.warn b{color:var(--red)}
+  .ssbyn-panels{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:16px}
+  .ssbyn-panel{background:var(--white);color:var(--black);border:1px solid #E1E8F0;border-radius:10px;padding:14px 16px;min-width:0}
+  .ssbyn-panel h3{margin:0 0 10px;padding-bottom:8px;border-bottom:2px solid var(--red);font-size:14px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--black)}
+  .bar-row{display:grid;grid-template-columns:minmax(80px,130px) 1fr 32px;gap:8px;align-items:center;font-size:12px;margin:6px 0;color:var(--black)}
+  .bar{height:10px;background:var(--white);border:1px solid var(--black);overflow:hidden}
+  .bar i{display:block;height:100%;background:var(--red)}
+  .ssbyn-panel ul{list-style:none;margin:0;padding:0}
+  .ssbyn-panel li{display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 8px;padding:8px 0;border-bottom:1px solid var(--black);font-size:13px;color:var(--black)}
+  .ssbyn-panel li:last-child{border:0}
+  .ssbyn-panel li a{color:var(--red);font-weight:700}
+  .ssbyn-panel li a:hover{color:var(--black)}
+  .ssbyn-panel p{font-size:13px;color:var(--black);margin:0}
+  .ssbyn-actions{display:flex;flex-wrap:wrap;gap:8px}
+  .ssbyn-actions a{display:inline-flex;align-items:center;min-height:44px;padding:8px 16px;border:1px solid var(--red);border-radius:8px;background:var(--red);color:var(--black);text-decoration:none;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;transition:background-color .2s ease-out,color .2s ease-out,border-color .2s ease-out}
+  .ssbyn-actions a:hover,.ssbyn-actions a:focus-visible{background:#203B5E;border-color:#203B5E;color:var(--white);outline:none}
+  .ssbyn-actions a:focus-visible{outline:3px solid var(--red);outline-offset:2px;outline-offset:2px}
+  .ssbyn-actions a.alt{background:var(--white);color:var(--black);border-color:#C8D4E2}
+  .ssbyn-actions a.alt:hover,.ssbyn-actions a.alt:focus-visible{background:var(--navy);color:var(--white)}
+  @media (max-width:480px){.ssbyn-actions a{flex:1 1 100%;justify-content:center}.ssbyn-card b{font-size:26px}}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="ssbyn-dash">
+  <div class="ssbyn-cards">
+    <div class="ssbyn-card"><b>{{ stats.total }}</b><span>Total registrations</span></div>
+    <div class="ssbyn-card warn"><b>{{ stats.new }}</b><span>Awaiting review</span></div>
+    <div class="ssbyn-card"><b>{{ stats.approved }}</b><span>Approved</span></div>
+    <div class="ssbyn-card"><b>{{ stats.week }}</b><span>Last 7 days</span></div>
+    <div class="ssbyn-card"><b>{{ stats.female }}</b><span>Female</span></div>
+    <div class="ssbyn-card"><b>{{ stats.male }}</b><span>Male</span></div>
+    <div class="ssbyn-card"><b>{{ stats.pwd }}</b><span>PWDs</span></div>
+    <div class="ssbyn-card warn"><b>{{ stats.no_pvc }}</b><span>No PVC yet</span></div>
+  </div>
+
+  <div class="ssbyn-actions">
+    <a href="{% url 'admin:core_registration_changelist' %}?status__exact=new">Review new sign-ups</a>
+    <a class="alt" href="{% url 'admin:core_registration_changelist' %}">All registrations</a>
+    <a class="alt" href="{% url 'admin:core_sitesettings_changelist' %}">Change hero photo</a>
+    <a class="alt" href="{% url 'admin:core_galleryimage_add' %}">Add gallery photo</a>
+    <a class="alt" href="{% url 'admin:core_executive_changelist' %}">Executives</a>
+    <a class="alt" href="{% url 'admin:core_teammember_changelist' %}">Team members</a>
+    <a class="alt" href="/" target="_blank" rel="noopener">View website</a>
+  </div>
+
+  <div class="ssbyn-panels">
+    <div class="ssbyn-panel">
+      <h3>Registrations by LGA</h3>
+      {% for row in by_lga %}
+        <div class="bar-row"><span>{{ row.name }}</span><div class="bar"><i style="width:{{ row.pct }}%"></i></div><b>{{ row.total }}</b></div>
+      {% empty %}<p>No registrations yet.</p>{% endfor %}
+    </div>
+    <div class="ssbyn-panel">
+      <h3>Latest sign-ups</h3>
+      <ul>
+        {% for r in recent %}
+          <li><a href="{% url 'admin:core_registration_change' r.pk %}">{{ r.full_name }}</a><span>{{ r.get_lga_display }} &middot; {{ r.created_at|date:"j M, H:i" }}</span></li>
+        {% empty %}<li>No registrations yet.</li>{% endfor %}
+      </ul>
+    </div>
+  </div>
+</div>
+{{ block.super }}
+{% endblock %}

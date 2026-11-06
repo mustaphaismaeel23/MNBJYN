@@ -1,0 +1,16 @@
+/* Executive Navy admin theme: shared by dashboard, forms, lists and login. */
+:root { --primary:#142B4A; --secondary:#203B5E; --accent:#14B8A6; --link-fg:#142B4A; --link-hover-color:#0F766E; --selected-row:#F0FDFA; }
+body, #container { color:#142B4A; }
+#header { background:#142B4A; color:#fff; border-bottom:3px solid #14B8A6; }
+#branding h1, #branding h1 a:link, #branding h1 a:visited, #user-tools, #user-tools a { color:#fff; }
+#user-tools a:hover { color:#99F6E4; }
+div.breadcrumbs { background:#203B5E; }
+.module h2, .module caption, .inline-group h2 { background:#142B4A; }
+.button, input[type=submit], input[type=button], .submit-row input, a.button { background:#142B4A; border-radius:6px; }
+.button:hover, input[type=submit]:hover, input[type=button]:hover, .submit-row input:hover, a.button:hover { background:#203B5E; }
+.button.default, input[type=submit].default, .submit-row input.default { background:#14B8A6; color:#142B4A; font-weight:700; }
+a:link, a:visited { color:#142B4A; }
+a:focus, a:hover { color:#0F766E; }
+.selector-chosen h2 { background:#142B4A !important; }
+#changelist-filter li.selected a { color:#0F766E !important; }
+input:focus, textarea:focus, select:focus { border-color:#14B8A6 !important; outline-color:#14B8A6; }

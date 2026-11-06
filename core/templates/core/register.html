@@ -1,0 +1,102 @@
+{% extends "core/base.html" %}
+{% load static %}
+
+{% block title %}Register &middot; {{ ORG_SHORT }}{% endblock %}
+{% block meta_desc %}Register as a member of the {{ ORG_NAME }} in {{ STATE_NAME }} State.{% endblock %}
+
+{% block content %}
+<section class="page-hero on-black">
+  <div class="wrap">
+    <p class="kicker">Join the network</p>
+    <h1>Member registration</h1>
+    <p class="lead">Tell us a little about yourself. It takes about two minutes, and your ward and LGA help us place you with the right local team.</p>
+  </div>
+</section>
+
+<section class="section form-section on-white">
+  <div class="wrap form-layout">
+    <form method="post" class="reg-form" novalidate>
+      {% csrf_token %}
+
+      {% if form.errors %}
+      <div class="alert" role="alert">
+        <strong>Please fix the highlighted fields.</strong>
+        {% if form.non_field_errors %}{{ form.non_field_errors }}{% endif %}
+      </div>
+      {% endif %}
+
+      <fieldset>
+        <legend><span>1</span> Personal details</legend>
+        <div class="grid">
+          <div class="field span-2">{{ form.full_name.label_tag }}{{ form.full_name }}{% include "core/_errors.html" with f=form.full_name %}</div>
+          <div class="field">{{ form.gender.label_tag }}{{ form.gender }}{% include "core/_errors.html" with f=form.gender %}</div>
+          <div class="field">{{ form.age_range.label_tag }}{{ form.age_range }}{% include "core/_errors.html" with f=form.age_range %}</div>
+          <div class="field">{{ form.phone.label_tag }}{{ form.phone }}{% include "core/_errors.html" with f=form.phone %}</div>
+          <div class="field">{{ form.email.label_tag }}{{ form.email }}{% include "core/_errors.html" with f=form.email %}</div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend><span>2</span> Where you live</legend>
+        <div class="grid">
+          <div class="field">{{ form.lga.label_tag }}{{ form.lga }}{% include "core/_errors.html" with f=form.lga %}</div>
+          <div class="field">{{ form.ward.label_tag }}{{ form.ward }}{% include "core/_errors.html" with f=form.ward %}</div>
+          <div class="field span-2">{{ form.community.label_tag }}{{ form.community }}{% include "core/_errors.html" with f=form.community %}</div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend><span>3</span> About you</legend>
+        <div class="grid">
+          <div class="field">{{ form.occupation_status.label_tag }}{{ form.occupation_status }}{% include "core/_errors.html" with f=form.occupation_status %}</div>
+          <div class="field">{{ form.institution_or_workplace.label_tag }}{{ form.institution_or_workplace }}{% include "core/_errors.html" with f=form.institution_or_workplace %}</div>
+          <div class="field">{{ form.pvc_status.label_tag }}{{ form.pvc_status }}{% include "core/_errors.html" with f=form.pvc_status %}</div>
+          <div class="field check-field">
+            <label class="check">{{ form.has_disability }}<span>{{ form.has_disability.label }}</span></label>
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend><span>4</span> How you would like to help</legend>
+        <div class="field">
+          <p class="field-label">{{ form.interests.label }} <small>(choose any)</small></p>
+          <div class="checks">
+            {% for cb in form.interests %}<label class="check chip">{{ cb.tag }}<span>{{ cb.choice_label }}</span></label>{% endfor %}
+          </div>
+          {% include "core/_errors.html" with f=form.interests %}
+        </div>
+        <div class="field">{{ form.message.label_tag }}{{ form.message }}{% include "core/_errors.html" with f=form.message %}</div>
+      </fieldset>
+
+      <div class="hp" aria-hidden="true">{{ form.website.label_tag }}{{ form.website }}</div>
+
+      <div class="field consent">
+        <label class="check">{{ form.consent }}<span>{{ form.consent.label }}</span></label>
+        {% include "core/_errors.html" with f=form.consent %}
+      </div>
+
+      <div class="submit-bar">
+        <button type="submit" class="btn btn-lg btn-block">Submit registration <span aria-hidden="true">&rarr;</span></button>
+      </div>
+      <p class="fine">Your details are used only by {{ ORG_SHORT }} to coordinate membership and outreach.</p>
+    </form>
+
+    <aside class="form-aside">
+      <div class="aside-card on-black">
+        <h3>Why register?</h3>
+        <ul class="ticks">
+          <li>Be placed with your ward and local government team</li>
+          <li>Join town halls, bootcamps and trainings</li>
+          <li>Volunteer for election duty and the Situation Room</li>
+          <li>Get your PVC and help others collect theirs</li>
+        </ul>
+      </div>
+      <a class="back" href="{% url 'core:home' %}">&larr; Back to home</a>
+    </aside>
+  </div>
+</section>
+<datalist id="ward-options"></datalist>
+{{ lga_data|json_script:"lga-data" }}
+<script src="{% static 'core/js/lga.js' %}" defer></script>
+{% endblock %}
