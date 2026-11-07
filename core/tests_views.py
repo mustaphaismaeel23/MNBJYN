@@ -51,6 +51,15 @@ class AdminDashboardTests(TestCase):
         )
         self.client.force_login(user)
 
+    def test_admin_login_uses_branded_light_template(self):
+        self.client.logout()
+        response = self.client.get("/admin/login/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "admin/login.html")
+        self.assertContains(response, "Welcome back")
+        self.assertContains(response, "core/css/admin.css")
+
     def test_dashboard_links_to_registration_and_field_management(self):
         response = self.client.get("/admin/")
 

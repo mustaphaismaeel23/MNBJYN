@@ -1,0 +1,55 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block title %}{% if form.errors %}{% translate "Error:" %} {% endif %}{{ block.super }}{% endblock %}
+{% block bodyclass %}{{ block.super }} login{% endblock %}
+{% block usertools %}{% endblock %}
+{% block nav-global %}{% endblock %}
+{% block nav-sidebar %}{% endblock %}
+{% block content_title %}{% endblock %}
+{% block nav-breadcrumbs %}{% endblock %}
+
+{% block content %}
+<main class="mnb-login">
+  <section class="mnb-login-card" aria-labelledby="login-title">
+    <div class="mnb-login-brand">
+      <span class="mnb-login-mark" aria-hidden="true">M</span>
+      <span>MNBJYN <span class="mnb-login-brand-muted">Administration</span></span>
+    </div>
+    <p class="mnb-login-eyebrow">Restricted workspace</p>
+    <h1 id="login-title">Welcome back</h1>
+    <p class="mnb-login-intro">Sign in with your authorized administrator account to manage registrations and election operations.</p>
+
+    {% if form.errors and not form.non_field_errors %}
+      <p class="mnb-login-error" role="alert">Please correct the error below.</p>
+    {% endif %}
+    {% for error in form.non_field_errors %}
+      <p class="mnb-login-error" role="alert">{{ error }}</p>
+    {% endfor %}
+    {% if user.is_authenticated %}
+      <p class="mnb-login-error" role="alert">
+        You are signed in as {{ username }}, but that account cannot access this page.
+      </p>
+    {% endif %}
+
+    <form action="{{ app_path }}" method="post" id="login-form">
+      {% csrf_token %}
+      <div class="mnb-login-field">
+        {{ form.username.errors }}
+        {{ form.username.label_tag }}
+        {{ form.username }}
+      </div>
+      <div class="mnb-login-field">
+        {{ form.password.errors }}
+        {{ form.password.label_tag }}
+        {{ form.password }}
+      </div>
+      <input type="hidden" name="next" value="{{ next }}">
+      <button class="mnb-login-submit" type="submit">{% translate "Log in" %}</button>
+    </form>
+
+    <p class="mnb-login-foot">Authorized MNBJYN administrators only.</p>
+    <a class="mnb-login-back" href="{{ site_url }}">&larr; Return to website</a>
+  </section>
+</main>
+{% endblock %}
