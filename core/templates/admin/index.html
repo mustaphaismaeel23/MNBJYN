@@ -38,6 +38,12 @@
   .ssbyn-panel li a{color:var(--red);font-weight:700}
   .ssbyn-panel li a:hover{color:var(--black)}
   .ssbyn-panel p{font-size:13px;color:var(--black);margin:0}
+  .ssbyn-election{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
+  .ssbyn-election a{display:block;padding:12px 14px;border:1px solid #E1E8F0;border-radius:8px;color:var(--black);text-decoration:none;font-size:13px;font-weight:700}
+  .ssbyn-election a span{display:block;margin-top:3px;color:#526174;font-size:12px;font-weight:400}
+  .ssbyn-election a:hover,.ssbyn-election a:focus-visible{border-color:var(--red);outline:2px solid var(--red);outline-offset:1px}
+  .ssbyn-current{background:#F6F8FB;border-radius:8px;padding:12px 14px;margin-bottom:12px;color:var(--black)}
+  .ssbyn-current strong{display:block}
   .ssbyn-actions{display:flex;flex-wrap:wrap;gap:8px}
   .ssbyn-actions a{display:inline-flex;align-items:center;min-height:44px;padding:8px 16px;border:1px solid var(--red);border-radius:8px;background:var(--red);color:var(--black);text-decoration:none;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;transition:background-color .2s ease-out,color .2s ease-out,border-color .2s ease-out}
   .ssbyn-actions a:hover,.ssbyn-actions a:focus-visible{background:#203B5E;border-color:#203B5E;color:var(--white);outline:none}
@@ -59,6 +65,11 @@
     <div class="ssbyn-card"><b>{{ stats.male }}</b><span>Male</span></div>
     <div class="ssbyn-card"><b>{{ stats.pwd }}</b><span>PWDs</span></div>
     <div class="ssbyn-card warn"><b>{{ stats.no_pvc }}</b><span>No PVC yet</span></div>
+    <div class="ssbyn-card"><b>{{ current_election|yesno:"Yes,No" }}</b><span>Current election set</span></div>
+    <div class="ssbyn-card"><b>{{ stats.active_agents }} / {{ stats.agents }}</b><span>Active result agents</span></div>
+    <div class="ssbyn-card"><b>{{ stats.active_polling_units }} / {{ stats.polling_units }}</b><span>Active polling units</span></div>
+    <div class="ssbyn-card warn"><b>{{ stats.results_to_review }}</b><span>Current results to review</span></div>
+    <div class="ssbyn-card"><b>{{ stats.verified_results }}</b><span>Current verified results</span></div>
   </div>
 
   <div class="ssbyn-actions">
@@ -69,6 +80,25 @@
     <a class="alt" href="{% url 'admin:core_executive_changelist' %}">Executives</a>
     <a class="alt" href="{% url 'admin:core_teammember_changelist' %}">Team members</a>
     <a class="alt" href="/" target="_blank" rel="noopener">View website</a>
+  </div>
+
+  <div class="ssbyn-panel">
+    <h3>Election and field operations</h3>
+    {% if current_election %}
+      <div class="ssbyn-current"><strong>Current election: {{ current_election.name }}</strong>
+        {% if current_election.election_date %}<span>{{ current_election.election_date|date:"j F Y" }}</span>{% endif %}
+      </div>
+    {% else %}
+      <div class="ssbyn-current"><strong>No current election selected</strong><span>Select an election to use with the results app.</span></div>
+    {% endif %}
+    <div class="ssbyn-election">
+      <a href="{% url 'admin:core_election_changelist' %}">Elections<span>Set the current election and manage candidates</span></a>
+      <a href="{% url 'admin:core_pollingunit_changelist' %}">Polling units<span>Search, filter and activate polling locations</span></a>
+      <a href="{% url 'admin:core_resultagent_changelist' %}">Result agents<span>Manage roles, assignments and temporary PINs</span></a>
+      <a href="{% url 'admin:core_resultsubmission_changelist' %}">Result submissions<span>Review and verify submitted results</span></a>
+      <a href="{% url 'admin:core_situationroomconfig_changelist' %}">Situation Room settings<span>Choose simulation/live mode and publishing rules</span></a>
+      <a href="{% url 'admin:core_auditlog_changelist' %}">Audit log<span>Review results-system activity</span></a>
+    </div>
   </div>
 
   <div class="ssbyn-panels">

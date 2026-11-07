@@ -107,7 +107,10 @@ A branded, staff-only member management interface is available at `/mainadmin/`.
 Sign in with a Django staff/superuser account. It supports searching and filtering
 registrations, adding records, editing member details/status/notes, and confirming
 deletion. The standard Django admin remains available at `/admin/` for advanced
-management and CSV export.
+management and CSV export. Its dashboard also provides election operations shortcuts
+for elections, polling units, results agents/PINs, result reviews, Situation Room
+settings and the audit log, along with live counts for agents, polling units and
+results needing review.
 
 ## Visual design and photography
 

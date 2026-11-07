@@ -21,7 +21,14 @@ class SSBYNAdminSite(admin.AdminSite):
         return context
 
     def index(self, request, extra_context=None):
-        from .models import LGA_CHOICES, Registration
+        from .models import (
+            LGA_CHOICES,
+            Election,
+            PollingUnit,
+            Registration,
+            ResultAgent,
+            ResultSubmission,
+        )
 
         qs = Registration.objects.all()
         now = timezone.now()
@@ -43,10 +50,27 @@ class SSBYNAdminSite(admin.AdminSite):
             "male": qs.filter(gender="male").count(),
             "pwd": qs.filter(has_disability=True).count(),
             "no_pvc": qs.filter(pvc_status="no").count(),
+            "agents": ResultAgent.objects.count(),
+            "active_agents": ResultAgent.objects.filter(is_active=True).count(),
+            "polling_units": PollingUnit.objects.count(),
+            "active_polling_units": PollingUnit.objects.filter(is_active=True).count(),
+            "results_to_review": ResultSubmission.objects.filter(
+                is_current=True,
+                status__in=(
+                    ResultSubmission.Status.SUBMITTED,
+                    ResultSubmission.Status.FLAGGED,
+                    ResultSubmission.Status.DISPUTED,
+                ),
+            ).count(),
+            "verified_results": ResultSubmission.objects.filter(
+                is_current=True, status=ResultSubmission.Status.VERIFIED
+            ).count(),
         }
+        current_election = Election.current()
         extra_context = {
             **(extra_context or {}),
             "stats": stats,
+            "current_election": current_election,
             "by_lga": by_lga,
             "recent": qs[:6],
         }
