@@ -145,6 +145,13 @@ Set these in **Vercel → Project → Settings → Environment Variables**, then
 | `DJANGO_ALLOWED_HOSTS` | (optional) add your custom domain, e.g. `ssbyn.org,www.ssbyn.org` |
 | `DJANGO_CSRF_ORIGINS` | (optional) `https://ssbyn.org,https://www.ssbyn.org` |
 
+For Supabase on Vercel, use the project's **Transaction pooler** connection string
+from **Supabase → Connect** (not the direct `db.<project-ref>.supabase.co` host,
+which may resolve only to IPv6). Copy the full URL into Vercel's `DATABASE_URL`
+value; do not put it in `settings.py` or include quotes or `DATABASE_URL=` in the
+value. The Vercel database configuration requires SSL and disables server-side
+cursors/prepared statements for transaction-pooler compatibility.
+
 `*.vercel.app` hosts are allowed automatically. Create your admin login once, from your
 own computer, with `DATABASE_URL` pointed at the same Postgres database:
 `python manage.py createsuperuser`.
@@ -185,7 +192,7 @@ If something you add in `/admin` (team member, hero photo...) does not show on t
 running on Vercel's temporary database. Each Vercel server instance has its own empty copy, so what you
 save in one is invisible to another. The admin shows a red warning when this is the case. Fix:
 
-1. Create a free Postgres database at https://neon.tech (or Supabase) and copy its connection string.
+1. Create a free Postgres database at https://neon.tech (or Supabase) and copy its connection string. For Supabase on Vercel, use its Transaction pooler URL.
 2. Vercel -> Project -> Settings -> Environment Variables: add `DATABASE_URL` = that string, and
    `DJANGO_SECRET_KEY` = any long random text. Apply to Production.
 3. Redeploy. Migrations run automatically and the `Devmusteey` super-user is created again.

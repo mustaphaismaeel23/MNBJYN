@@ -119,11 +119,17 @@ DATABASES = {
         env="DATABASE_URL",
         default=f"sqlite:///{_sqlite_path}",
         conn_max_age=0 if ON_VERCEL else 600,
-        ssl_require=False,
+        ssl_require=ON_VERCEL,
     )
 }
 
 USING_SQLITE = DATABASES["default"]["ENGINE"].endswith("sqlite3")
+if ON_VERCEL and not USING_SQLITE:
+    DATABASES["default"]["DISABLE_SERVER_SIDE_CURSORS"] = True
+    DATABASES["default"].setdefault("OPTIONS", {}).update({
+        "connect_timeout": 10,
+        "prepare_threshold": 0,
+    })
 
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
