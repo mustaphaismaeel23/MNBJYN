@@ -110,7 +110,12 @@ deletion. The standard Django admin remains available at `/admin/` for advanced
 management and CSV export. Its dashboard also provides election operations shortcuts
 for elections, polling units, results agents/PINs, result reviews, Situation Room
 settings and the audit log, along with live counts for agents, polling units and
-results needing review.
+results needing review. Manage the ward directory under **Wards**: rename wards,
+add wards and adjust their display order. Ward codes keep their existing index;
+changing display order does not renumber polling units. A ward with polling units
+cannot be deleted. Polling units can be searched and edited from **Polling units**,
+including their ward, number, name, voter count and active status. When adding a unit,
+select its ward and number; its polling-unit code is generated automatically.
 
 ## Visual design and photography
 
@@ -169,10 +174,10 @@ will not survive. Use object storage (e.g. Cloudinary / S3) for uploads.
   `DJANGO_SUPERUSER_PASSWORD` is set. It works at `/admin/` and `/mainadmin/`.
   Override with `DJANGO_SUPERUSER_USERNAME` / `DJANGO_SUPERUSER_PASSWORD`; repair or reset any time with
   `python manage.py ensure_superuser`. (On Vercel the migration runs automatically on cold start.)
-* **All 20 LGAs:** `core/lga_data.py` is the single source of truth for the 20 Local Governments and their
-  212 wards. The registration form, member workspace and admin filters all use it. The registration form
-  suggests the wards of the chosen LGA.
-* **Home page:** the "20 LGAs" box is now a dropdown on the same row as 2026 and 2027. Choosing an LGA reveals
+* **All 44 LGAs:** `core/kano_lgas.json` provides the initial LGA and ward catalog; the database-backed
+  ward list is editable in `/admin/`. Registration suggestions and election directory views use that
+  catalog. Ward code indexes stay fixed when names or display order change.
+* **Home page:** the LGA box is a dropdown on the same row as 2026 and 2027. Choosing an LGA reveals
   its ward dropdown, and the chosen LGA and ward are shown together.
 * **Situation Room:** an animated live-results *simulation* (sample data, clearly labelled) with statewide
   totals, a per-LGA tile map, LGA and ward selectors, and polling-unit submissions by representatives.
@@ -215,6 +220,38 @@ Pages are also sent with `Cache-Control: no-store`, so browsers/CDNs never show 
   supervisor review, admin management, polling-unit import, audit log.
   **Full documentation for the app developers: [`docs/API.md`](docs/API.md)** and [`docs/openapi.json`](docs/openapi.json)
   (also served at `/api/v1/openapi.json`).
+
+### Results-app agent accounts and polling-unit assignments
+
+The results app uses **results-agent accounts** (`ResultAgent`), which are separate from Django
+website accounts. A Django staff or superuser login for `/admin/` does not automatically let that
+person sign in to the Android app; create a results agent with the `agent` role for each app user.
+
+1. Import or add the polling units and make sure the units agents should report are active. Create
+   the election and its candidates, then mark the election as current.
+2. Create an agent in `/admin/` → **Result agents** → **Add**, using the agent's name and phone,
+   role `agent`, then select the local government, ward, and polling unit from the dropdowns.
+   The selected polling unit is assigned when the agent is saved. A temporary PIN is shown once;
+   give it to the agent securely. The agent must change it at first sign-in. Alternatively, create
+   an account from the command line:
+
+   ```bash
+   python manage.py create_agent --name "Agent Name" --phone 08012345678 --role agent
+   ```
+
+3. If an agent needs a different polling unit, edit the agent's **Polling units** field in `/admin/`.
+   An unassigned agent may also claim **one active, unassigned polling unit** in a compatible
+   Android app. After a claim, only an administrator can change or remove that assignment.
+4. For self-assignment, deploy the backend endpoints and install an APK that supports the flow.
+   The app checks `GET /api/v1/agent/assignments/`; when the agent has no assignment, it fetches
+   available units with `GET /api/v1/agent/available-polling-units/` and claims the chosen unit
+   with `POST /api/v1/agent/claim-assignment/`, sending
+   `{"polling_unit_code":"20/21/03/007"}`. If another agent claims the same unit first, refresh
+   the available list and choose another.
+
+An agent account must be active and have the `agent` role to use these endpoints. See
+[`docs/API.md`](docs/API.md) for request/response details and error codes.
+
 * **Set-up commands**
 
 ```bash

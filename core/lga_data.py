@@ -14,12 +14,22 @@ with Path(__file__).with_name("kano_lgas.json").open(encoding="utf-8-sig") as fi
     ]
 
 LGA_NAMES = {key: name for key, name, _ in KANO_LGAS}
-LGA_WARDS = {key: wards for key, _, wards in KANO_LGAS}
 
 
 def lga_json_data():
-    """JSON-serialisable structure for the front-end pickers."""
-    return [{"key": key, "name": name, "wards": wards} for key, name, wards in KANO_LGAS]
+    """Return the editable database ward catalog for front-end pickers."""
+    from .models import Ward
+
+    wards_by_lga = {key: [] for key in LGA_KEYS}
+    for lga, index, name in Ward.objects.order_by("lga", "sort_order", "ward_index").values_list(
+        "lga", "ward_index", "name"
+    ):
+        if lga in wards_by_lga:
+            wards_by_lga[lga].append({"index": index, "name": name})
+    return [
+        {"key": key, "name": name, "wards": wards_by_lga[key]}
+        for key, name, _ in KANO_LGAS
+    ]
 
 
 STATE_NAME = "Kano"
@@ -59,9 +69,11 @@ def find_lga_key(value):
 
 
 def find_ward_index(lga_key, value):
-    """Match a ward of the given LGA by loosely spelled name; None if unknown."""
+    """Match a database ward of the given LGA by loose spelling; None if unknown."""
+    from .models import Ward
+
     wanted = normalise_name(value)
-    for index, name in enumerate(LGA_WARDS[lga_key]):
+    for index, name in Ward.objects.filter(lga=lga_key).values_list("ward_index", "name"):
         if normalise_name(name) == wanted:
             return index
     return None

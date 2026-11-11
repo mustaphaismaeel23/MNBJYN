@@ -7,7 +7,7 @@ from django.core.cache import cache
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
 
-from core.models import ApiToken, Election, PollingUnit, ResultAgent, ResultSubmission, SituationRoomConfig
+from core.models import ApiToken, Election, PollingUnit, ResultAgent, ResultSubmission, SituationRoomConfig, Ward
 
 NO_CACHE = {"default": {"BACKEND": "django.core.cache.backends.dummy.DummyCache"}}
 PIN = "493021"
@@ -77,6 +77,89 @@ class ApiTests(TestCase):
         self.assertEqual(config["state"], {"name": "Kano", "code": "20"})
         self.assertEqual(config["election"]["slug"], "kano-gov-2027")
         self.assertEqual(config["election"]["candidates"][0]["name"], "Malam Nasiru Bala Ja'oji")
+
+    def test_public_ward_catalog_uses_database_names_and_display_order(self):
+        first, second = list(Ward.objects.filter(lga="kano_municipal").order_by("sort_order")[:2])
+        first.name = "Renamed ward"
+        first.sort_order = 1
+        first.save()
+        second.sort_order = 0
+        second.save()
+
+        response = self.call("get", "/public/lgas/kano_municipal/wards/")
+        wards = response.json()["wards"]
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual([ward["index"] for ward in wards[:2]], [second.ward_index, first.ward_index])
+        self.assertEqual(next(w["name"] for w in wards if w["index"] == first.ward_index), "Renamed ward")
+
+        structure = self.call("get", "/public/structure/").json()
+        municipal = next(lga for lga in structure["lgas"] if lga["key"] == "kano_municipal")
+        self.assertEqual([ward["index"] for ward in municipal["wards"][:2]], [second.ward_index, first.ward_index])
+
+    def test_registered_agent_can_claim_one_available_polling_unit(self):
+        pu = PollingUnit.objects.create(
+            lga="kano_municipal", ward_index=2, ward_name="Gandun Albasa",
+            number=3, code="20/21/03/003",
+        )
+        agent = make_agent("Self Assign Agent", "08000000007")
+        token = self.login(agent)
+
+        assignments = self.call("get", "/agent/assignments/", token=token).json()
+        self.assertTrue(assignments["can_self_assign"])
+        self.assertIn("do not need an administrator", assignments["message"])
+
+        available = self.call("get", "/agent/available-polling-units/", token=token)
+        self.assertEqual(available.status_code, 200)
+        self.assertEqual([row["code"] for row in available.json()["polling_units"]], [pu.code])
+
+        claimed = self.call(
+            "post", "/agent/claim-assignment/",
+            {"polling_unit_code": pu.code.replace("/", "-")}, token=token,
+        )
+        self.assertEqual(claimed.status_code, 201, claimed.content)
+        self.assertEqual(claimed.json()["polling_unit"]["code"], pu.code)
+
+        repeated = self.call(
+            "post", "/agent/claim-assignment/", {"polling_unit_code": pu.code}, token=token
+        )
+        self.assertEqual(repeated.status_code, 200)
+        self.assertTrue(repeated.json()["already_claimed"])
+        self.assertEqual(self.call("get", "/agent/assignments/", token=token).json()["can_self_assign"], False)
+
+        other_agent = make_agent("Second Agent", "08000000008")
+        conflict = self.call(
+            "post", "/agent/claim-assignment/",
+            {"polling_unit_code": pu.code}, token=self.login(other_agent),
+        )
+        self.assertEqual((conflict.status_code, conflict.json()["error"]["code"]), (409, "polling_unit_claimed"))
+
+    def test_self_assignment_is_limited_to_one_unit(self):
+        agent = make_agent("One Unit Agent", "08000000009")
+        token = self.login(agent)
+        pu = PollingUnit.objects.create(
+            lga="kano_municipal", ward_index=2, ward_name="Gandun Albasa",
+            number=3, code="20/21/03/003",
+        )
+        another = PollingUnit.objects.create(
+            lga="kano_municipal", ward_index=2, ward_name="Gandun Albasa",
+            number=4, code="20/21/03/004",
+        )
+        self.assertEqual(self.call(
+            "post", "/agent/claim-assignment/", {"polling_unit_code": pu.code}, token=token
+        ).status_code, 201)
+        response = self.call(
+            "post", "/agent/claim-assignment/", {"polling_unit_code": another.code}, token=token
+        )
+        self.assertEqual((response.status_code, response.json()["error"]["code"]), (409, "assignment_limit_reached"))
+        self.assertFalse(agent.polling_units.filter(pk=another.pk).exists())
+
+    def test_openapi_documents_self_assignment_endpoints(self):
+        response = self.client.get("/api/v1/openapi.json")
+
+        self.assertEqual(response.status_code, 200)
+        paths = response.json()["paths"]
+        self.assertIn("/agent/available-polling-units/", paths)
+        self.assertIn("/agent/claim-assignment/", paths)
 
     # ---------------------------------------------------------------- auth
     def test_login_pin_change_and_token_storage(self):
@@ -177,7 +260,7 @@ class ApiTests(TestCase):
         self.assertEqual(ResultSubmission.objects.filter(is_current=True).count(), 1)
         r = self.call("post", f"/results/{second['id']}/review/", {"action": "verify"}, token=sup)
         self.assertEqual(r.json()["submission"]["status"], "verified")
-        again = self.result_body(rejected_votes=6)
+        again = self.result_body(rejected_votes=6, acknowledge_anomalies=True)
         r = self.call("post", "/results/", again, token=token)
         self.assertEqual((r.status_code, r.json()["error"]["code"]), (409, "already_verified"))
         r = self.call("post", f"/results/{second['id']}/review/", {"action": "reject", "note": "wrong sheet"}, token=sup)
@@ -234,8 +317,9 @@ class ApiTests(TestCase):
         self.assertEqual((s["polling_units_total"], s["polling_units_reported"], s["valid_votes"]), (2, 1, 296))
         self.assertEqual(s["candidates"][0]["votes"], 120)
         st = self.call("get", "/public/structure/").json()
-        self.assertEqual(len(st["lgas"]), 20)
-        ward = [w for w in st["lgas"][1]["wards"] if w["index"] == 2][0]
+        self.assertEqual(len(st["lgas"]), 44)
+        municipal = next(lga for lga in st["lgas"] if lga["key"] == "kano_municipal")
+        ward = next(w for w in municipal["wards"] if w["index"] == 2)
         self.assertEqual(ward["pus"][0][:2], [1, "20/21/03/001"])
         self.assertEqual(self.call("get", "/public/summary/", QUERY_STRING="lga=nowhere").status_code, 422)
 
@@ -298,7 +382,11 @@ class ApiTests(TestCase):
         csv_bytes = b"lga,ward,pu_number,name,registered_voters\nKano Municipal,Gandun Albasa,1,Primary School,612\n"
         up = SimpleUploadedFile("pus.csv", csv_bytes, content_type="text/csv")
         r = self.client.post("/api/v1/admin/polling-units/import/", {"file": up}, HTTP_AUTHORIZATION=f"Bearer {adm}")
-        self.assertEqual((r.status_code, r.json()["created"]), (200, 1), r.content)
+        self.assertEqual(
+            (r.status_code, r.json()["created"], r.json()["updated"]),
+            (200, 0, 1),
+            r.content,
+        )
         self.assertTrue(PollingUnit.objects.filter(code="20/21/03/001", registered_voters=612).exists())
         bad = SimpleUploadedFile("pus.csv", b"lga,ward,pu_number\nKano Municipal,Nowhere,1\n", content_type="text/csv")
         r = self.client.post("/api/v1/admin/polling-units/import/", {"file": bad}, HTTP_AUTHORIZATION=f"Bearer {adm}")

@@ -24,13 +24,14 @@ The back-end does three jobs:
 
 ## 1. Quick start for app developers
 
-1. Ask the administrator for your **base URL** (e.g. `https://ssbyn.example.org`) and a **test agent** (phone + temporary PIN).
+1. Get the app's **base URL** and your registered agent account's phone + temporary PIN. An administrator must create the agent account, but does not need to assign your polling unit.
 2. `POST /api/v1/auth/login/` → keep the `token`.
 3. The first login has `must_change_pin: true` → `POST /api/v1/auth/change-pin/`.
 4. `GET /api/v1/election/current/` → candidates (build the result form from this; **never hard-code candidates**).
-5. `GET /api/v1/agent/assignments/` → the polling units this agent reports.
-6. `POST /api/v1/results/` → submit a result (generate a UUID `submission_id` on the phone first).
-7. Optionally `POST /api/v1/results/{id}/sheet/` → upload a photo of the signed result sheet.
+5. `GET /api/v1/agent/assignments/` → your assigned polling units. If `can_self_assign` is true, show the returned guidance and let the agent choose a unit.
+6. `GET /api/v1/agent/available-polling-units/` → browse unassigned active units; `POST /api/v1/agent/claim-assignment/` claims one. An agent may self-assign one unit; no administrator approval is needed. Claims cannot be changed by the agent.
+7. `POST /api/v1/results/` → submit a result (generate a UUID `submission_id` on the phone first).
+8. Optionally `POST /api/v1/results/{id}/sheet/` → upload a photo of the signed result sheet.
 
 An OpenAPI 3 description is served at **`/api/v1/openapi.json`** (and a copy is in `docs/openapi.json`). Import it into Postman / Insomnia / Swagger UI, or use it to generate a client.
 
@@ -59,7 +60,11 @@ curl -s $BASE/api/v1/agent/assignments/ -H "Authorization: Bearer $TOKEN"
 ### Polling-unit codes
 
 `<state>/<LGA>/<ward>/<PU>` → `20/21/03/007` = Kano (20) / LGA 21 (Kano Municipal) / ward 03 / PU 007.
-LGAs and wards are numbered by their position in the list the back-end holds (`core/lga_data.py`; 44 LGAs and 484 wards). Polling units are imported separately; always use the `code` the API returns, never build codes yourself.
+LGA code positions come from `core/lga_data.py`. The initial 484 wards are seeded
+from `core/kano_lgas.json`; the database catalog is editable from `/admin/`.
+Ward `index` values remain stable for polling-unit codes, even when ward names or
+display order change. Polling units are imported separately; always use the `code`
+the API returns, never build codes yourself.
 
 ### Error format
 
@@ -83,6 +88,8 @@ Every error has the same shape:
 | 409 | `no_active_election` | No election is open yet. |
 | 409 | `already_verified` | The PU's result is verified/locked; a supervisor must reject it before it can be corrected. |
 | 409 | `submission_id_reused` | Same `submission_id` with different figures. Generate a new UUID. |
+| 409 | `polling_unit_claimed` | Another agent already claimed the selected polling unit; choose an available unit. |
+| 409 | `assignment_limit_reached` | This agent already has one assignment; contact an administrator to change it. |
 | 409 | `conflict` | Two writes collided. **Retry the same request**. |
 | 413 | `payload_too_large` | JSON > 1 MB or photo > 4 MB. Compress the photo. |
 | 415 | `unsupported_media_type` | Missing `Content-Type: application/json`. |
@@ -98,7 +105,7 @@ Every error has the same shape:
 
 | Role | Who | Can |
 |---|---|---|
-| `agent` | Polling-unit agent | Log in, read assignments, **submit** results for assigned PUs, upload sheet photos, read own submissions. |
+| `agent` | Polling-unit agent | Log in, self-assign one available active PU if unassigned, read assignments, **submit** results for assigned PUs, upload sheet photos, read own submissions. |
 | `supervisor` | Ward / LGA collation officer | Read results in their area (whole state, or one LGA via `lga_scope`), **verify / dispute / reject**, see summaries. Cannot submit. |
 | `admin` | Results administrator | Everything above for the whole state, plus manage agents, assignments, polling units, elections, the Situation Room switch and read the audit log. |
 
@@ -107,7 +114,7 @@ Security measures built in:
 * **Tokens**: random 256-bit bearer tokens; only a SHA-256 hash is stored. Valid 72 h (configurable), max 5 live devices per user, revocable (logout, PIN reset, deactivation).
 * **PINs**: 6 digits, stored with Django's password hasher (PBKDF2). Temporary PIN issued by an admin **must be changed at first login**. Simple PINs (`111111`, `123456`…) are refused.
 * **Brute-force protection**: 5 wrong PINs lock the account for 15 min (works across servers because it is stored in the database); per-IP and per-user rate limits.
-* **Least privilege**: role checks on every endpoint; agents only reach their own PUs and their own submissions (others return 404, not 403, to avoid probing).
+* **Least privilege**: role checks on every endpoint; agents only reach their own PUs and their own submissions (others return 404, not 403, to avoid probing). Self-assignment is limited to one active PU that no agent has claimed; there is no agent-facing release or reassignment endpoint.
 * **Integrity**: submissions are *never edited*. A correction is a new row; the old one becomes `superseded`. Each carries a SHA-256 of its figures. Verified results are locked.
 * **Idempotency**: a client-generated `submission_id` makes retries safe.
 * **Audit log**: logins (incl. failures), submissions, reviews and every admin action are recorded with IP and device.
@@ -155,7 +162,7 @@ Networks on election day are unreliable. Recommended pattern:
 2. Send `POST /results/`. On **201 or 200 (duplicate)** → mark *sent*. On network error / 5xx / 409 `conflict` / 429 → keep in queue and **retry the identical payload** with exponential back-off (2 s → 4 s → … max 60 s).
 3. On **4xx other than the above** → don't retry blindly; show the error to the agent so they can fix the figures, then create a **new** `submission_id`.
 4. When connectivity returns after a long gap you may send up to 20 queued items at once with `POST /results/batch/` (each item is judged separately, see below).
-5. Show the agent a status per PU from `GET /agent/assignments/` (`result.status`).
+5. Show the agent a status per PU from `GET /agent/assignments/` (`result.status`). If `can_self_assign` is true, display the response's `message`, let them browse available units and claim one without admin assignment.
 
 Retrying the same `submission_id` + same figures is always safe; you'll get the original record back with `"duplicate": true`.
 
@@ -194,10 +201,15 @@ Legend: 🌐 public · 🔑 any logged-in user · **A** agent · **S** superviso
 | `GET /health/` | Liveness check. |
 | `GET /openapi.json` | OpenAPI 3 description. |
 | `GET /public/config/` | `mode` (`simulation`/`live`), `refresh_seconds`, election + candidates. **This is what the Situation Room reads to know which mode to show.** |
-| `GET /public/structure/` | All 20 LGAs → wards → polling units in one compact response. PU entries are arrays `[number, code, name, registered_voters]`. |
+| `GET /public/structure/` | All 44 LGAs → database wards → polling units in one compact response. PU entries are arrays `[number, code, name, registered_voters]`. |
 | `GET /public/results/?since=<cursor>` | Public results. First call without `since` returns everything (`full: true`); then pass back the returned `cursor` to get **only changes**. Row: `{pu, registered, accredited, rejected, valid, votes:[…in candidate order…], by, at, status}`. `withdrawn` lists PU codes whose result was removed (disputed/rejected). `public_count` is the server's total, used by clients to self-check. |
 | `GET /public/summary/?lga=kano_municipal&ward=3` | Totals and per-candidate percentages for the state, an LGA or a ward. |
 | `GET /public/lgas/` · `/public/lgas/{lga}/wards/` · `/public/lgas/{lga}/wards/{ward_index}/polling-units/` | Directory browsing. `lga` is a Kano LGA key such as `kano_municipal`, `dawaki_kudu`, or `tudun_wada`. |
+
+The public ward directory is backed by the Django admin's **Wards** catalog. Ward
+names and display order may be edited there; the stable `ward_index` used in
+polling-unit codes is not changed by display reordering. Adding or removing wards
+is reflected by the directory and Situation Room after the database migration.
 
 ### 6.2 Authentication
 
@@ -223,12 +235,23 @@ Phone numbers are normalised (`+234 801 234 5678` = `08012345678`).
 **`GET /agent/assignments/`** **A** → the agent's polling units:
 ```json
 { "election": { "…": "…" },
+  "can_self_assign": false, "message": "",
   "polling_units": [ { "code": "20/21/03/007", "number": 7, "name": "Polling Unit 007",
       "lga": "kano_municipal", "lga_name": "Kano Municipal", "ward_index": 2, "ward_name": "Gandun Albasa",
       "registered_voters": 612, "latitude": null, "longitude": null,
       "result": { "id": 118, "status": "submitted", "submitted_at": "…", "has_sheet": false } } ] }
 ```
 `result` is `null` until a result exists.
+
+When `polling_units` is empty, the response sets `can_self_assign: true` and explains that the agent can choose an assignment without contacting an administrator.
+
+**`GET /agent/available-polling-units/`** **A** (`?lga=kano_municipal&ward=2&q=school&page=1`) returns active, unassigned polling units. It is empty after an agent has claimed a unit.
+
+**`POST /agent/claim-assignment/`** **A** claims one unit:
+```json
+{ "polling_unit_code": "20/21/03/007" }
+```
+→ `201` `{ "polling_unit": { ... }, "already_claimed": false }`. Repeating a claim for the same unit is safe and returns `200`; claiming a unit taken by another agent returns `409 polling_unit_claimed`. An agent can claim only one unit, and must ask an administrator to change or remove an assignment.
 
 **`POST /results/`** **A**
 ```json
@@ -316,7 +339,7 @@ Placeholder units have no names and no voter counts. Load the official INEC list
 lga,ward,pu_number,name,registered_voters,latitude,longitude,code
 Kano Municipal,Gandun Albasa,1,"Primary School, Gandun Albasa",612,12.0,8.5,20/21/03/001
 ```
-* `lga`, `ward`, `pu_number` are required. Ward names must match `core/lga_data.py` (case, spaces and quotes are ignored). `code` is optional (derived if absent).
+* `lga`, `ward`, `pu_number` are required. Ward names must match the admin-managed catalog (case, spaces and quotes are ignored). `code` is optional (derived if absent).
 * `python manage.py import_polling_units file.csv --dry-run` checks the file; without `--dry-run` it imports. Add `--replace` to remove placeholder units not in the file (units that already have results are deactivated, never deleted).
 * Or `POST /api/v1/admin/polling-units/import/` (max 4 MB per upload; split big files by LGA).
 * The import is all-or-nothing: if any row is wrong nothing is imported and the problems are listed.

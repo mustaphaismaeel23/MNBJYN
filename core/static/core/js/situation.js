@@ -111,18 +111,19 @@
     s.seed = seed;
     LGAS.forEach(function (l, li) {
       var lga = { i: li, key: l.key, name: l.name, wards: [], tot: blank() };
-      l.wards.forEach(function (wn, wi) {
-        var r = rng(hash(seed + ":" + l.key + ":" + wi));
+      l.wards.forEach(function (wardData, wi) {
+        var wardIndex = wardData.index;
+        var r = rng(hash(seed + ":" + l.key + ":" + wardIndex));
         var n = 8 + Math.floor(r() * 8);
         var lean = BASE.map(function (b) { return b * Math.exp((r() - 0.5) * 1.5); });
         var sum = lean.reduce(function (a, b) { return a + b; }, 0);
         lean = lean.map(function (v) { return v / sum; });
-        var ward = { name: wn, lga: li, idx: wi, n: n, lean: lean, pus: [], tot: blank() };
+        var ward = { name: wardData.name, lga: li, idx: wardIndex, n: n, lean: lean, pus: [], tot: blank() };
         ward.tot.n = n; lga.tot.n += n; s.state.n += n;
         for (var p = 0; p < n; p++) {
-          var rr = rng(hash(seed + ":" + l.key + ":" + wi + ":" + p + ":reg"));
+          var rr = rng(hash(seed + ":" + l.key + ":" + wardIndex + ":" + p + ":reg"));
           ward.pus.push({
-            num: p + 1, code: puCode(li, wi, p + 1), name: "Polling Unit " + z(p + 1, 3), generic: true,
+            num: p + 1, code: puCode(li, wardIndex, p + 1), name: "Polling Unit " + z(p + 1, 3), generic: true,
             reg: 380 + Math.floor(rr() * 560), res: null
           });
           s.order.push([li, wi, p]);
@@ -182,10 +183,11 @@
     LGAS.forEach(function (l, li) {
       var sl = byKey[l.key] || { wards: [] };
       var lga = { i: li, key: l.key, name: l.name, wards: [], tot: blank() };
-      l.wards.forEach(function (wn, wi) {
+      l.wards.forEach(function (wardData) {
+        var wi = wardData.index;
         var sw = null;
         for (var k = 0; k < sl.wards.length; k++) if (sl.wards[k].index === wi) { sw = sl.wards[k]; break; }
-        var ward = { name: wn, lga: li, idx: wi, n: 0, pus: [], tot: blank() };
+        var ward = { name: wardData.name, lga: li, idx: wi, n: 0, pus: [], tot: blank() };
         (sw ? sw.pus : []).forEach(function (a) {
           // a = [number, code, name, registered_voters]
           var pu = { num: a[0], code: a[1], name: a[2], generic: /^Polling Unit \d+$/.test(a[2]), reg: a[3] || 0, res: null };
@@ -280,7 +282,12 @@
 
   /* ---------- rendering ---------- */
   function curLga() { return scope.lga >= 0 ? model.lgas[scope.lga] : null; }
-  function curWard() { return scope.ward >= 0 ? model.lgas[scope.lga].wards[scope.ward] : null; }
+  function curWard() {
+    if (scope.ward < 0) return null;
+    var wards = model.lgas[scope.lga].wards;
+    for (var i = 0; i < wards.length; i++) if (wards[i].idx === scope.ward) return wards[i];
+    return null;
+  }
   function curPu() { return scope.pu >= 0 ? curWard().pus[scope.pu] : null; }
 
   function scopeTotals() {
@@ -361,7 +368,7 @@
     for (var i = 0; i < model.history.length && shown < 3; i++) {
       var h = model.history[i];
       if (scope.lga >= 0 && h.lga.i !== scope.lga) continue;
-      if (scope.ward >= 0 && h.ward.idx !== scope.ward) continue;
+      if (scope.ward >= 0 && h.ward.idx !== curWard().idx) continue;
       if (pu && h.pu !== pu) continue;
       var li = el("li", "sit-item" + (h.fresh ? " fresh" : ""));
       var top = el("div", "sit-item-top");
@@ -380,12 +387,12 @@
     wardSel.innerHTML = "";
     var o = el("option", null, "All wards"); o.value = ""; wardSel.appendChild(o);
     if (scope.lga >= 0) {
-      model.lgas[scope.lga].wards.forEach(function (w, i) {
-        var op = el("option", null, w.name); op.value = i; wardSel.appendChild(op);
+      model.lgas[scope.lga].wards.forEach(function (w) {
+        var op = el("option", null, w.name); op.value = w.idx; wardSel.appendChild(op);
       });
     }
     wardWrap.hidden = scope.lga < 0;
-    wardSel.value = scope.ward >= 0 ? scope.ward : "";
+    wardSel.value = scope.ward >= 0 ? String(scope.ward) : "";
   }
 
   function fillPus() {
@@ -420,8 +427,11 @@
   function restoreScope() {
     if (scope.lga >= model.lgas.length) scope.lga = -1;
     if (scope.lga < 0) { scope.ward = -1; scope.pu = -1; }
-    else if (scope.ward >= model.lgas[scope.lga].wards.length) { scope.ward = -1; scope.pu = -1; }
-    else if (scope.ward >= 0 && scope.pu >= curWard().pus.length) scope.pu = -1;
+    else if (scope.ward >= 0) {
+      var wards = model.lgas[scope.lga].wards, found = false;
+      for (var i = 0; i < wards.length; i++) if (wards[i].idx === scope.ward) { found = true; break; }
+      if (!found || scope.pu >= curWard().pus.length) { scope.ward = -1; scope.pu = -1; }
+    }
     lgaSel.value = scope.lga >= 0 ? scope.lga : "";
     fillWards(); fillPus();
   }
@@ -430,7 +440,7 @@
     selectScope(lgaSel.value === "" ? -1 : +lgaSel.value, -1, -1);
   });
   wardSel.addEventListener("change", function () {
-    selectScope(scope.lga, wardSel.value === "" ? -1 : +wardSel.value, -1);
+    selectScope(scope.lga, wardSel.value === "" ? -1 : parseInt(wardSel.value, 10), -1);
   });
   puSel.addEventListener("change", function () {
     selectScope(scope.lga, scope.ward, puSel.value === "" ? -1 : +puSel.value);

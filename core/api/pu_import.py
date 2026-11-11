@@ -5,7 +5,7 @@ Parsing is pure Python. Database writes happen in ``apply_rows`` (lazy model imp
 CSV columns (header names are case-insensitive; order does not matter):
 
   lga                 LGA name or key, e.g. "Kano Municipal" or "kano_municipal"
-  ward                ward name exactly as in core/lga_data.py (quotes/spaces ignored)
+  ward                ward name in the admin-managed catalog (quotes/spaces ignored)
   pu_number           polling unit number inside the ward (1, 2, 3 ...)      [or: number]
   name                polling unit name, e.g. "Primary School, Majidadi"       (optional)
   registered_voters   registered voters on the INEC register                   (optional)
@@ -17,7 +17,7 @@ import hashlib
 import io
 import re
 
-from core.lga_data import KANO_LGAS, find_lga_key, find_ward_index, pu_code
+from core.lga_data import find_lga_key, normalise_name, pu_code
 
 ALIASES = {
     "lga": ("lga", "lga_name", "local_government", "localgovernment"),
@@ -78,6 +78,12 @@ def parse_csv(text):
     missing = [k for k in ("lga", "ward", "number") if k not in cols]
     if missing:
         return [], [f"Missing column(s): {', '.join(missing)}. Required: lga, ward, pu_number."]
+    from core.models import Ward
+
+    ward_lookup = {
+        (lga, normalise_name(name)): (index, name)
+        for lga, index, name in Ward.objects.values_list("lga", "ward_index", "name")
+    }
     rows, seen = [], set()
     for line_no, rec in enumerate(reader, start=2):
         def err(msg):
@@ -90,10 +96,11 @@ def parse_csv(text):
         if lga is None:
             err(f"unknown LGA '{rec.get(cols['lga'], '')}'")
             continue
-        ward_index = find_ward_index(lga, rec.get(cols["ward"], ""))
-        if ward_index is None:
+        ward = ward_lookup.get((lga, normalise_name(rec.get(cols["ward"], ""))))
+        if ward is None:
             err(f"unknown ward '{rec.get(cols['ward'], '')}' in {lga}")
             continue
+        ward_index, ward_name = ward
         number = _to_int(rec.get(cols["number"], ""), 1, 9999)
         if number is None:
             err("pu_number must be a whole number from 1 to 9999")
@@ -123,20 +130,13 @@ def parse_csv(text):
                 err(f"code '{code}' must look like 20/21/03/007")
                 continue
         rows.append({
-            "lga": lga, "ward_index": ward_index, "ward_name": _ward_name(lga, ward_index),
+            "lga": lga, "ward_index": ward_index, "ward_name": ward_name,
             "number": number,
             "name": (rec.get(cols["name"], "") if "name" in cols else "").strip()[:200],
             "registered_voters": registered, "latitude": lat, "longitude": lng,
             "code": code or pu_code(lga, ward_index, number),
         })
     return rows, errors
-
-
-def _ward_name(lga, ward_index):
-    for key, _, wards in KANO_LGAS:
-        if key == lga:
-            return wards[ward_index]
-    return ""
 
 
 def placeholder_count(lga, ward_index):
@@ -147,15 +147,16 @@ def placeholder_count(lga, ward_index):
 
 def placeholder_rows():
     """One generic polling unit per number for every ward. NOT official data."""
+    from core.models import Ward
+
     rows = []
-    for lga, _, wards in KANO_LGAS:
-        for wi, wn in enumerate(wards):
-            for n in range(1, placeholder_count(lga, wi) + 1):
-                rows.append({
-                    "lga": lga, "ward_index": wi, "ward_name": wn, "number": n, "name": "",
-                    "registered_voters": 0, "latitude": None, "longitude": None,
-                    "code": pu_code(lga, wi, n),
-                })
+    for ward in Ward.objects.order_by("lga", "sort_order", "ward_index"):
+        for n in range(1, placeholder_count(ward.lga, ward.ward_index) + 1):
+            rows.append({
+                "lga": ward.lga, "ward_index": ward.ward_index, "ward_name": ward.name,
+                "number": n, "name": "", "registered_voters": 0, "latitude": None,
+                "longitude": None, "code": pu_code(ward.lga, ward.ward_index, n),
+            })
     return rows
 
 
@@ -163,22 +164,30 @@ def apply_rows(rows, replace=False):
     """Insert/update polling units. Returns a dict of counts."""
     from django.db import transaction
 
-    from core.models import PollingUnit
+    from core.models import PollingUnit, Ward
 
     existing = {(p.lga, p.ward_index, p.number): p for p in PollingUnit.objects.all()}
+    ward_records = {
+        (ward.lga, ward.ward_index): ward
+        for ward in Ward.objects.all()
+    }
     to_create, to_update, file_keys = [], [], set()
     for r in rows:
         key = (r["lga"], r["ward_index"], r["number"])
+        ward_record = ward_records.get((r["lga"], r["ward_index"]))
+        if ward_record is None:
+            raise ValueError(f"Unknown ward index {r['ward_index']} for {r['lga']}.")
         file_keys.add(key)
         pu = existing.get(key)
         if pu is None:
             to_create.append(PollingUnit(
                 lga=r["lga"], ward_index=r["ward_index"], ward_name=r["ward_name"], number=r["number"],
+                ward_record=ward_record,
                 code=r["code"], name=r["name"], registered_voters=r["registered_voters"],
                 latitude=r["latitude"], longitude=r["longitude"], is_active=True,
             ))
         else:
-            pu.ward_name, pu.code, pu.is_active = r["ward_name"], r["code"], True
+            pu.ward_name, pu.ward_record, pu.code, pu.is_active = r["ward_name"], ward_record, r["code"], True
             if r["name"] or r.get("overwrite_blank"):
                 pu.name = r["name"]
             pu.registered_voters = r["registered_voters"] or pu.registered_voters
@@ -189,7 +198,10 @@ def apply_rows(rows, replace=False):
     with transaction.atomic():
         if to_update:
             PollingUnit.objects.bulk_update(
-                to_update, ["ward_name", "code", "is_active", "name", "registered_voters", "latitude", "longitude"],
+                to_update, [
+                    "ward_name", "ward_record", "code", "is_active", "name", "registered_voters",
+                    "latitude", "longitude",
+                ],
                 batch_size=500)
         if to_create:
             PollingUnit.objects.bulk_create(to_create, batch_size=500)

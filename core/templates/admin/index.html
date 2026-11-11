@@ -68,6 +68,7 @@
     <div class="ssbyn-card"><b>{{ current_election|yesno:"Yes,No" }}</b><span>Current election set</span></div>
     <div class="ssbyn-card"><b>{{ stats.active_agents }} / {{ stats.agents }}</b><span>Active result agents</span></div>
     <div class="ssbyn-card"><b>{{ stats.active_polling_units }} / {{ stats.polling_units }}</b><span>Active polling units</span></div>
+    <div class="ssbyn-card"><b>{{ stats.wards }}</b><span>Managed wards</span></div>
     <div class="ssbyn-card warn"><b>{{ stats.results_to_review }}</b><span>Current results to review</span></div>
     <div class="ssbyn-card"><b>{{ stats.verified_results }}</b><span>Current verified results</span></div>
   </div>
@@ -93,6 +94,7 @@
     {% endif %}
     <div class="ssbyn-election">
       <a href="{% url 'admin:core_election_changelist' %}">Elections<span>Set the current election and manage candidates</span></a>
+      <a href="{% url 'admin:core_ward_changelist' %}">Wards<span>Rename wards, adjust display order and add locations</span></a>
       <a href="{% url 'admin:core_pollingunit_changelist' %}">Polling units<span>Search, filter and activate polling locations</span></a>
       <a href="{% url 'admin:core_resultagent_changelist' %}">Result agents<span>Manage roles, assignments and temporary PINs</span></a>
       <a href="{% url 'admin:core_resultsubmission_changelist' %}">Result submissions<span>Review and verify submitted results</span></a>

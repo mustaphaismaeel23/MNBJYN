@@ -9,7 +9,7 @@ from django.db import IntegrityError, transaction
 from django.utils import timezone
 
 from core.lga_data import KANO_LGAS, STATE_CODE, STATE_NAME, lga_code, ward_code
-from core.models import Election, PollingUnit, ResultAgent, ResultSubmission, SituationRoomConfig
+from core.models import Election, PollingUnit, ResultAgent, ResultSubmission, SituationRoomConfig, Ward
 
 from . import validators as v
 from .base import ApiError, audit, issue_token
@@ -226,14 +226,6 @@ def submit_result(request, agent, payload):
             raise ApiError(409, "submission_id_reused", "This submission_id was already used for different figures.")
         return existing, False
 
-    if clean["anomalies"] and not clean["acknowledge_anomalies"]:
-        raise ApiError(
-            422, "anomalies_detected",
-            "These figures look unusual. Re-check the result sheet; if they are correct, "
-            "send again with acknowledge_anomalies=true.",
-            extra={"anomalies": [{"code": a, "message": v.ANOMALY_TEXT[a]} for a in clean["anomalies"]]},
-        )
-
     try:
         with transaction.atomic():
             PollingUnit.objects.select_for_update().get(pk=pu.pk)   # one writer per polling unit
@@ -243,6 +235,14 @@ def submit_result(request, agent, payload):
                 if current.status == S.VERIFIED:
                     raise ApiError(409, "already_verified",
                                    "This polling unit's result is already verified. Ask your supervisor to reject it first.")
+            if clean["anomalies"] and not clean["acknowledge_anomalies"]:
+                raise ApiError(
+                    422, "anomalies_detected",
+                    "These figures look unusual. Re-check the result sheet; if they are correct, "
+                    "send again with acknowledge_anomalies=true.",
+                    extra={"anomalies": [{"code": a, "message": v.ANOMALY_TEXT[a]} for a in clean["anomalies"]]},
+                )
+            if current is not None:
                 if current.payload_hash == digest and current.status != S.REJECTED:
                     current = ResultSubmission.objects.select_related("polling_unit", "agent").get(pk=current.pk)
                     return current, False
@@ -306,13 +306,21 @@ def structure_payload():
     for lga, ward_index, number, code, name, registered in rows:
         by_ward[(lga, ward_index)].append([number, code, name or f"Polling Unit {number:03d}", registered])
         total += 1
+    wards_by_lga = defaultdict(list)
+    for ward in Ward.objects.order_by("lga", "sort_order", "ward_index"):
+        wards_by_lga[ward.lga].append(ward)
     lgas = []
-    for key, name, wards in KANO_LGAS:
+    for key, name, _ in KANO_LGAS:
         lgas.append({
             "key": key, "code": lga_code(key), "name": name,
             "wards": [
-                {"index": wi, "code": ward_code(key, wi), "name": wn, "pus": by_ward.get((key, wi), [])}
-                for wi, wn in enumerate(wards)
+                {
+                    "index": ward.ward_index,
+                    "code": ward_code(key, ward.ward_index),
+                    "name": ward.name,
+                    "pus": by_ward.get((key, ward.ward_index), []),
+                }
+                for ward in wards_by_lga[key]
             ],
         })
     return {

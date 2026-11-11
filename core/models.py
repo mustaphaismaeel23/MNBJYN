@@ -7,6 +7,7 @@ from .lga_data import KANO_LGAS
 LGA_CHOICES = [(key, name) for key, name, _ in KANO_LGAS] + [
     ("other", "Other (outside Kano State)"),
 ]
+WARD_LGA_CHOICES = [(key, name) for key, name, _ in KANO_LGAS]
 
 GENDER_CHOICES = [("male", "Male"), ("female", "Female")]
 
@@ -326,12 +327,47 @@ class SituationRoomConfig(models.Model):
         return obj
 
 
+class Ward(models.Model):
+    """Editable ward catalog; ward_index remains stable for polling-unit codes."""
+
+    lga = models.CharField(max_length=20, choices=WARD_LGA_CHOICES, db_index=True)
+    ward_index = models.PositiveSmallIntegerField()
+    name = models.CharField(max_length=120)
+    sort_order = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        ordering = ["lga", "sort_order", "ward_index"]
+        constraints = [
+            models.UniqueConstraint(fields=["lga", "ward_index"], name="uniq_ward_index_per_lga"),
+        ]
+
+    def __str__(self):
+        return f"{self.name} · {self.lga_name}"
+
+    @property
+    def lga_name(self):
+        return LGA_NAMES.get(self.lga, self.lga)
+
+    def save(self, *args, **kwargs):
+        if self.pk:
+            previous_name = Ward.objects.filter(pk=self.pk).values_list("name", flat=True).first()
+            if previous_name is not None and previous_name != self.name:
+                super().save(*args, **kwargs)
+                PollingUnit.objects.filter(ward_record_id=self.pk).update(ward_name=self.name)
+                return
+        super().save(*args, **kwargs)
+
+
 class PollingUnit(models.Model):
     """One INEC polling unit, belonging to a ward of an LGA (see core/lga_data.py)."""
 
     lga = models.CharField("LGA key", max_length=20, db_index=True)
-    ward_index = models.PositiveSmallIntegerField(help_text="Position of the ward in core/lga_data.py (0-based).")
+    ward_index = models.PositiveSmallIntegerField(help_text="Stable ward code index (0-based).")
     ward_name = models.CharField(max_length=120)
+    ward_record = models.ForeignKey(
+        Ward, on_delete=models.PROTECT, related_name="polling_units",
+        null=True, blank=False,
+    )
     number = models.PositiveSmallIntegerField(help_text="Polling unit number inside the ward, e.g. 7.")
     code = models.CharField(max_length=20, unique=True, help_text="INEC style code, e.g. 20/21/03/007.")
     name = models.CharField(max_length=200, blank=True, help_text="Location name, e.g. Primary School, Majidadi.")

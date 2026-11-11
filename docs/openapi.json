@@ -33,7 +33,7 @@
               "application/json": {
                 "example": {
                   "status": "ok",
-                  "service": "ssbyn-results-api",
+                  "service": "mnbjyn-results-api",
                   "version": "1"
                 }
               }
@@ -80,7 +80,7 @@
                   },
                   "election": {
                     "id": 1,
-                    "name": "2027 Election – Kano State",
+                    "name": "2027 Governorship – Kano State",
                     "slug": "kano-gov-2027",
                     "election_date": null,
                     "is_current": true,
@@ -141,7 +141,7 @@
                     "name",
                     "registered_voters"
                   ],
-                  "total_polling_units": 2466,
+                  "total_polling_units": 1,
                   "lgas": [
                     {
                       "key": "kano_municipal",
@@ -149,14 +149,14 @@
                       "name": "Kano Municipal",
                       "wards": [
                         {
-                          "index": 0,
-                          "code": "20/21/01",
-                          "name": "Chedi",
+                          "index": 2,
+                          "code": "20/21/03",
+                          "name": "Gandun Albasa",
                           "pus": [
                             [
-                              1,
-                              "20/21/01/001",
-                              "Polling Unit 001",
+                              7,
+                              "20/21/03/007",
+                              "Polling Unit 007",
                               612
                             ]
                           ]
@@ -273,7 +273,7 @@
                 "example": {
                   "election": {
                     "id": 1,
-                    "name": "2027 Election – Kano State"
+                    "name": "2027 Governorship – Kano State"
                   },
                   "scope": {
                     "lga": "kano_municipal",
@@ -356,10 +356,10 @@
                 "example": {
                   "lgas": [
                     {
-                      "key": "alkaleri",
+                      "key": "ajingi",
                       "code": "20/01",
-                      "name": "Alkaleri",
-                      "wards": 11
+                      "name": "Ajingi",
+                      "wards": 10
                     }
                   ]
                 }
@@ -405,10 +405,10 @@
                   },
                   "wards": [
                     {
-                      "index": 0,
-                      "code": "20/21/01",
-                      "name": "Chedi",
-                      "polling_units": 11
+                      "index": 2,
+                      "code": "20/21/03",
+                      "name": "Gandun Albasa",
+                      "polling_units": 1
                     }
                   ]
                 }
@@ -458,17 +458,17 @@
               "application/json": {
                 "example": {
                   "lga": "kano_municipal",
-                  "ward_index": 0,
-                  "ward_name": "Chedi",
+                  "ward_index": 2,
+                  "ward_name": "Gandun Albasa",
                   "polling_units": [
                     {
-                      "code": "20/21/01/001",
-                      "number": 1,
-                      "name": "Polling Unit 001",
+                      "code": "20/21/03/007",
+                      "number": 7,
+                      "name": "Polling Unit 007",
                       "lga": "kano_municipal",
                       "lga_name": "Kano Municipal",
-                      "ward_index": 0,
-                      "ward_name": "Chedi",
+                      "ward_index": 2,
+                      "ward_name": "Gandun Albasa",
                       "registered_voters": 612,
                       "latitude": null,
                       "longitude": null,
@@ -745,7 +745,7 @@
                 "example": {
                   "election": {
                     "id": 1,
-                    "name": "2027 Election – Kano State",
+                    "name": "2027 Governorship – Kano State",
                     "slug": "kano-gov-2027",
                     "election_date": null,
                     "is_current": true,
@@ -819,7 +819,9 @@
                       "is_active": true,
                       "result": null
                     }
-                  ]
+                  ],
+                  "can_self_assign": false,
+                  "message": ""
                 }
               }
             }
@@ -846,6 +848,178 @@
             "bearerAuth": []
           }
         ]
+      }
+    },
+    "/agent/available-polling-units/": {
+      "get": {
+        "tags": [
+          "App"
+        ],
+        "summary": "Find active polling units available for self-assignment",
+        "description": "Who can call it: **agent**.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "example": {
+                  "count": 1,
+                  "page": 1,
+                  "page_size": 100,
+                  "pages": 1,
+                  "polling_units": [
+                    {
+                      "code": "20/21/03/008",
+                      "number": 8,
+                      "name": "Polling Unit 008",
+                      "lga": "kano_municipal",
+                      "lga_name": "Kano Municipal",
+                      "ward_index": 2,
+                      "ward_name": "Gandun Albasa",
+                      "registered_voters": 0,
+                      "latitude": null,
+                      "longitude": null,
+                      "is_active": true
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": "validation_failed",
+                    "message": "Some fields are invalid.",
+                    "fields": {
+                      "votes": "Missing candidate id(s): 4."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "lga",
+            "in": "query",
+            "required": false,
+            "description": "Optional LGA key",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "ward",
+            "in": "query",
+            "required": false,
+            "description": "Optional ward index; requires lga",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "description": "Search code, name or ward",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "description": "",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "description": "max 200",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/agent/claim-assignment/": {
+      "post": {
+        "tags": [
+          "App"
+        ],
+        "summary": "Claim one unassigned active polling unit",
+        "description": "Who can call it: **agent**.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "example": {
+                  "polling_unit": {
+                    "code": "20/21/03/008",
+                    "number": 8,
+                    "name": "Polling Unit 008",
+                    "lga": "kano_municipal",
+                    "lga_name": "Kano Municipal",
+                    "ward_index": 2,
+                    "ward_name": "Gandun Albasa",
+                    "registered_voters": 0,
+                    "latitude": null,
+                    "longitude": null,
+                    "is_active": true
+                  },
+                  "already_claimed": false
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": "validation_failed",
+                    "message": "Some fields are invalid.",
+                    "fields": {
+                      "votes": "Missing candidate id(s): 4."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "example": {
+                "polling_unit_code": "20/21/03/008"
+              }
+            }
+          }
+        }
       }
     },
     "/results/": {
@@ -2366,10 +2540,10 @@
           "content": {
             "application/json": {
               "example": {
-                "name": "Primary School, Majidadi",
+                "name": "Primary School, Gandun Albasa",
                 "registered_voters": 612,
-                "latitude": 10.31,
-                "longitude": 9.84
+                "latitude": 12.0,
+                "longitude": 8.5
               }
             }
           }

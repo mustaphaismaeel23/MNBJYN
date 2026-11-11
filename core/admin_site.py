@@ -28,6 +28,7 @@ class SSBYNAdminSite(admin.AdminSite):
             Registration,
             ResultAgent,
             ResultSubmission,
+            Ward,
         )
 
         qs = Registration.objects.all()
@@ -54,6 +55,7 @@ class SSBYNAdminSite(admin.AdminSite):
             "active_agents": ResultAgent.objects.filter(is_active=True).count(),
             "polling_units": PollingUnit.objects.count(),
             "active_polling_units": PollingUnit.objects.filter(is_active=True).count(),
+            "wards": Ward.objects.count(),
             "results_to_review": ResultSubmission.objects.filter(
                 is_current=True,
                 status__in=(

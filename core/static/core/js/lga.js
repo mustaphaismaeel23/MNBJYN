@@ -31,7 +31,8 @@
       var a = document.createElement("span"); a.className = "res-part";
       a.innerHTML = '<small>LGA</small>'; a.appendChild(document.createTextNode(l.name));
       var b = document.createElement("span"); b.className = "res-part";
-      b.innerHTML = '<small>Ward</small>'; b.appendChild(document.createTextNode(wardSel.value));
+      b.innerHTML = '<small>Ward</small>';
+      b.appendChild(document.createTextNode(wardSel.options[wardSel.selectedIndex].text));
       result.appendChild(a); result.appendChild(b);
       result.hidden = false;
     }
@@ -41,7 +42,7 @@
       wardSel.innerHTML = "";
       wardSel.appendChild(opt("", "Select ward (" + (l ? l.wards.length : 0) + ")"));
       if (l) {
-        l.wards.forEach(function (w) { wardSel.appendChild(opt(w, w)); });
+        l.wards.forEach(function (w) { wardSel.appendChild(opt(w.index, w.name)); });
         wardSel.hidden = false;
       } else {
         wardSel.hidden = true;
@@ -58,7 +59,7 @@
     var sync = function () {
       list.innerHTML = "";
       var l = find(formLga.value);
-      if (l) l.wards.forEach(function (w) { list.appendChild(opt(w, "")); });
+      if (l) l.wards.forEach(function (w) { list.appendChild(opt(w.name, "")); });
     };
     formLga.addEventListener("change", sync);
     sync();

@@ -6,10 +6,11 @@ import uuid
 from django.conf import settings
 from django.core.files.storage import default_storage
 from django.http import HttpResponse
+from django.db import transaction
 from django.utils import timezone
 
 from core.lga_data import LGA_INDEX
-from core.models import Election, ResultSubmission, StoredFile
+from core.models import Election, PollingUnit, ResultAgent, ResultSubmission, StoredFile
 
 from . import services, validators as v
 from .base import ApiError, audit, endpoint, get_json, json_response, positive_int
@@ -99,7 +100,80 @@ def assignments(request):
             "has_sheet": bool(sub.sheet_name),
         }
         items.append(data)
-    return json_response({"election": services.election_payload(election), "polling_units": items})
+    has_assignments = request.agent.polling_units.exists()
+    can_self_assign = not has_assignments
+    message = ""
+    if can_self_assign:
+        message = (
+            "No polling unit is assigned yet. Choose an available unit to get started; "
+            "you do not need an administrator to assign it."
+        )
+    elif not pus:
+        message = "Your assigned polling unit is unavailable. Contact your administrator for help."
+    return json_response({
+        "election": services.election_payload(election),
+        "polling_units": items,
+        "can_self_assign": can_self_assign,
+        "message": message,
+    })
+
+
+@endpoint(roles=(AGENT,))
+def available_polling_units(request):
+    """List active polling units that have not been assigned to any agent."""
+    qs = PollingUnit.objects.filter(is_active=True, agents__isnull=True)
+    if request.agent.polling_units.exists():
+        qs = qs.none()
+    lga = request.GET.get("lga", "").strip()
+    if lga:
+        if lga not in LGA_INDEX:
+            raise v.ValidationFailed({"lga": "Unknown LGA key."})
+        qs = qs.filter(lga=lga)
+    ward = request.GET.get("ward", "").strip()
+    if ward:
+        if not ward.isdigit() or not lga:
+            raise v.ValidationFailed({"ward": "Give a numeric ward index together with lga."})
+        qs = qs.filter(ward_index=int(ward))
+    query = request.GET.get("q", "").strip()
+    if query:
+        from django.db.models import Q
+
+        qs = qs.filter(
+            Q(code__icontains=query) | Q(name__icontains=query) | Q(ward_name__icontains=query)
+        )
+    items, page = paginate(
+        qs.order_by("lga", "ward_index", "number"), request, default=100, maximum=200
+    )
+    return json_response({**page, "polling_units": [services.pu_payload(pu) for pu in items]})
+
+
+@endpoint(roles=(AGENT,))
+def claim_assignment(request):
+    """Claim one available polling unit. Agent claims cannot be changed through this API."""
+    data = get_json(request)
+    code = str(data.get("polling_unit_code") or "").strip().replace("-", "/")
+    if not code:
+        raise v.ValidationFailed({"polling_unit_code": "Choose an available polling-unit code."})
+
+    with transaction.atomic():
+        agent = ResultAgent.objects.select_for_update().get(pk=request.agent.pk)
+        pu = PollingUnit.objects.select_for_update().filter(code=code).first()
+        if pu is None or not pu.is_active:
+            raise ApiError(404, "polling_unit_not_available", "This polling unit is unavailable.")
+        existing = list(agent.polling_units.all())
+        if any(pu.code == code for pu in existing):
+            return json_response({"polling_unit": services.pu_payload(pu), "already_claimed": True})
+        if existing:
+            raise ApiError(
+                409, "assignment_limit_reached",
+                "You already have a polling-unit assignment. Contact your administrator to change it.",
+            )
+        if pu.agents.exists():
+            raise ApiError(409, "polling_unit_claimed", "This polling unit has already been claimed.")
+        agent.polling_units.add(pu)
+
+    audit(request, "agent_self_assign", target=pu.code)
+    return json_response({"polling_unit": services.pu_payload(pu), "already_claimed": False}, status=201)
 
 
 # ---------------------------------------------------------------- submitting results

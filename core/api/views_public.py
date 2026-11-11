@@ -1,7 +1,9 @@
 """Public, read-only endpoints (no login). Used by the Situation Room and by anyone who
 wants to display results or the polling-unit directory."""
+from django.db.models import Count
+
 from core.lga_data import KANO_LGAS, LGA_INDEX, lga_code, ward_code
-from core.models import PollingUnit
+from core.models import PollingUnit, Ward
 
 from . import services, validators as v
 from .base import ApiError, endpoint, json_response
@@ -48,7 +50,7 @@ def summary(request):
     if ward:
         if not lga:
             raise v.ValidationFailed({"ward": "Give the lga as well."})
-        if not ward.isdigit() or int(ward) >= len(dict((k, w) for k, _, w in KANO_LGAS)[lga]):
+        if not ward.isdigit() or not Ward.objects.filter(lga=lga, ward_index=int(ward)).exists():
             raise v.ValidationFailed({"ward": "Unknown ward index for that LGA."})
         ward_index = int(ward)
     return json_response(services.summary_payload(lga=lga, ward_index=ward_index))
@@ -56,35 +58,45 @@ def summary(request):
 
 @endpoint(public=True, cache_seconds=300)
 def lgas(request):
+    ward_counts = dict(
+        Ward.objects.values("lga").annotate(total=Count("id")).values_list("lga", "total")
+    )
     return json_response({"lgas": [
-        {"key": key, "code": lga_code(key), "name": name, "wards": len(wards)}
-        for key, name, wards in KANO_LGAS
+        {"key": key, "code": lga_code(key), "name": name, "wards": ward_counts.get(key, 0)}
+        for key, name, _ in KANO_LGAS
     ]})
 
 
 @endpoint(public=True, cache_seconds=300)
 def wards(request, lga):
-    table = {k: (n, w) for k, n, w in KANO_LGAS}
-    if lga not in table:
+    lga_names = {key: name for key, name, _ in KANO_LGAS}
+    if lga not in lga_names:
         raise ApiError(404, "lga_not_found", "Unknown LGA key.")
     counts = {}
     for idx in PollingUnit.objects.filter(lga=lga, is_active=True).values_list("ward_index", flat=True):
         counts[idx] = counts.get(idx, 0) + 1
-    name, ward_names = table[lga]
+    ward_rows = Ward.objects.filter(lga=lga).order_by("sort_order", "ward_index")
     return json_response({
-        "lga": {"key": lga, "code": lga_code(lga), "name": name},
-        "wards": [{"index": i, "code": ward_code(lga, i), "name": wn, "polling_units": counts.get(i, 0)}
-                  for i, wn in enumerate(ward_names)],
+        "lga": {"key": lga, "code": lga_code(lga), "name": lga_names[lga]},
+        "wards": [
+            {
+                "index": ward.ward_index,
+                "code": ward_code(lga, ward.ward_index),
+                "name": ward.name,
+                "polling_units": counts.get(ward.ward_index, 0),
+            }
+            for ward in ward_rows
+        ],
     })
 
 
 @endpoint(public=True, cache_seconds=60)
 def polling_units(request, lga, ward_index):
-    table = {k: w for k, _, w in KANO_LGAS}
-    if lga not in table or ward_index >= len(table[lga]):
+    ward = Ward.objects.filter(lga=lga, ward_index=ward_index).first()
+    if ward is None:
         raise ApiError(404, "ward_not_found", "Unknown LGA or ward.")
     qs = PollingUnit.objects.filter(lga=lga, ward_index=ward_index, is_active=True)
     return json_response({
-        "lga": lga, "ward_index": ward_index, "ward_name": table[lga][ward_index],
+        "lga": lga, "ward_index": ward_index, "ward_name": ward.name,
         "polling_units": [services.pu_payload(p) for p in qs],
     })
