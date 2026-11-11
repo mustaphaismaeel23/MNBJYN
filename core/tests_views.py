@@ -10,15 +10,19 @@ class HomeGalleryTests(TestCase):
         ward.name = "Editable ward name"
         ward.save()
 
-        for path in ("/", "/register/"):
+        response = self.client.get("/")
+        self.assertEqual(response.status_code, 200)
+        lga = next(item for item in response.context["lga_data"] if item["key"] == ward.lga)
+        self.assertIn({"index": ward.ward_index, "name": "Editable ward name"}, lga["wards"])
+
+    def test_public_registration_and_member_workspace_are_disabled(self):
+        for path in ("/register/", "/register/thank-you/", "/mainadmin/", "/mainadmin/members/add/"):
             with self.subTest(path=path):
-                response = self.client.get(path)
-                self.assertEqual(response.status_code, 200)
-                lga = next(item for item in response.context["lga_data"] if item["key"] == ward.lga)
-                self.assertIn(
-                    {"index": ward.ward_index, "name": "Editable ward name"},
-                    lga["wards"],
-                )
+                self.assertEqual(self.client.get(path).status_code, 404)
+
+        response = self.client.get("/")
+        self.assertNotContains(response, "Register as a member")
+        self.assertNotContains(response, "Register now")
 
     def test_supplied_photos_render_when_gallery_is_empty(self):
         response = self.client.get("/")
@@ -75,12 +79,12 @@ class AdminDashboardTests(TestCase):
         self.assertContains(response, "Welcome back")
         self.assertContains(response, "core/css/admin.css")
 
-    def test_dashboard_links_to_registration_and_field_management(self):
+    def test_dashboard_links_to_election_field_management(self):
         response = self.client.get("/admin/")
 
         self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, "All registrations")
         for label in (
-            "All registrations",
             "Elections",
             "Wards",
             "Polling units",
@@ -94,7 +98,7 @@ class AdminDashboardTests(TestCase):
 
     def test_dashboard_reports_current_election_and_active_counts(self):
         election = Election.objects.create(name="Test election", slug="test-election", is_current=True)
-        PollingUnit.objects.create(
+        polling_unit = PollingUnit.objects.create(
             lga="kano_municipal",
             ward_index=0,
             ward_name="Test ward",
@@ -105,13 +109,17 @@ class AdminDashboardTests(TestCase):
         agent = ResultAgent(full_name="Test Agent", phone="08012345678", is_active=True)
         agent.set_pin("123456")
         agent.save()
+        agent.polling_units.add(polling_unit)
 
         response = self.client.get("/admin/")
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.context["current_election"], election)
         self.assertEqual(response.context["stats"]["active_agents"], 1)
-        self.assertEqual(response.context["stats"]["active_polling_units"], 1)
+        self.assertEqual(response.context["stats"]["polling_units"], 1)
+        self.assertEqual(response.context["stats"]["assigned_polling_units"], 1)
+        self.assertEqual(response.context["stats"]["unassigned_polling_units"], 0)
+        self.assertEqual(response.context["stats"]["polling_units_yet_to_submit"], 1)
 
     def test_renaming_a_ward_updates_its_polling_units(self):
         ward = Ward.objects.get(lga="kano_municipal", ward_index=2)

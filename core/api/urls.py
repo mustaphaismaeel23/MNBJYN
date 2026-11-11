@@ -43,8 +43,6 @@ urlpatterns = [
     # ---- app: reference data and results
     *p("election/current/", route(GET=ag.election_current), "election_current"),
     *p("agent/assignments/", route(GET=ag.assignments), "agent_assignments"),
-    *p("agent/available-polling-units/", route(GET=ag.available_polling_units), "agent_available_pus"),
-    *p("agent/claim-assignment/", route(POST=ag.claim_assignment), "agent_claim_assignment"),
     *p("results/", route(GET=ag.results_list, POST=ag.results_create), "results"),
     *p("results/batch/", route(POST=ag.results_batch), "results_batch"),
     *p("results/mine/", route(GET=ag.results_mine), "results_mine"),

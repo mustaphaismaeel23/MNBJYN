@@ -14,15 +14,11 @@ def home(request):
     from .models import SituationRoomConfig
 
     lga_data = lga_json_data()
-    try:
-        situation = SituationRoomConfig.load()
-        mode, refresh = situation.mode, situation.refresh_seconds
-    except Exception:   # never let the Situation Room settings take the home page down
-        mode, refresh = "simulation", 10
+    situation = SituationRoomConfig.load()
     context = {
         "situation_config": {
-            "mode": mode,
-            "refresh_seconds": refresh,
+            "mode": "live",
+            "refresh_seconds": situation.refresh_seconds,
             "state_code": STATE_CODE,
             "state_name": STATE_NAME,
             "lga_count": len(lga_data),

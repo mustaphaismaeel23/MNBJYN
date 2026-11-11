@@ -96,70 +96,27 @@ class ApiTests(TestCase):
         municipal = next(lga for lga in structure["lgas"] if lga["key"] == "kano_municipal")
         self.assertEqual([ward["index"] for ward in municipal["wards"][:2]], [second.ward_index, first.ward_index])
 
-    def test_registered_agent_can_claim_one_available_polling_unit(self):
-        pu = PollingUnit.objects.create(
-            lga="kano_municipal", ward_index=2, ward_name="Gandun Albasa",
-            number=3, code="20/21/03/003",
-        )
+    def test_agent_cannot_choose_or_claim_a_polling_unit(self):
         agent = make_agent("Self Assign Agent", "08000000007")
         token = self.login(agent)
 
         assignments = self.call("get", "/agent/assignments/", token=token).json()
-        self.assertTrue(assignments["can_self_assign"])
-        self.assertIn("do not need an administrator", assignments["message"])
-
-        available = self.call("get", "/agent/available-polling-units/", token=token)
-        self.assertEqual(available.status_code, 200)
-        self.assertEqual([row["code"] for row in available.json()["polling_units"]], [pu.code])
-
-        claimed = self.call(
-            "post", "/agent/claim-assignment/",
-            {"polling_unit_code": pu.code.replace("/", "-")}, token=token,
+        self.assertFalse(assignments["can_self_assign"])
+        self.assertIn("Contact your administrator", assignments["message"])
+        self.assertEqual(self.call("get", "/agent/available-polling-units/", token=token).status_code, 404)
+        self.assertEqual(
+            self.call("post", "/agent/claim-assignment/", {"polling_unit_code": "20/21/03/003"},
+                      token=token).status_code,
+            404,
         )
-        self.assertEqual(claimed.status_code, 201, claimed.content)
-        self.assertEqual(claimed.json()["polling_unit"]["code"], pu.code)
 
-        repeated = self.call(
-            "post", "/agent/claim-assignment/", {"polling_unit_code": pu.code}, token=token
-        )
-        self.assertEqual(repeated.status_code, 200)
-        self.assertTrue(repeated.json()["already_claimed"])
-        self.assertEqual(self.call("get", "/agent/assignments/", token=token).json()["can_self_assign"], False)
-
-        other_agent = make_agent("Second Agent", "08000000008")
-        conflict = self.call(
-            "post", "/agent/claim-assignment/",
-            {"polling_unit_code": pu.code}, token=self.login(other_agent),
-        )
-        self.assertEqual((conflict.status_code, conflict.json()["error"]["code"]), (409, "polling_unit_claimed"))
-
-    def test_self_assignment_is_limited_to_one_unit(self):
-        agent = make_agent("One Unit Agent", "08000000009")
-        token = self.login(agent)
-        pu = PollingUnit.objects.create(
-            lga="kano_municipal", ward_index=2, ward_name="Gandun Albasa",
-            number=3, code="20/21/03/003",
-        )
-        another = PollingUnit.objects.create(
-            lga="kano_municipal", ward_index=2, ward_name="Gandun Albasa",
-            number=4, code="20/21/03/004",
-        )
-        self.assertEqual(self.call(
-            "post", "/agent/claim-assignment/", {"polling_unit_code": pu.code}, token=token
-        ).status_code, 201)
-        response = self.call(
-            "post", "/agent/claim-assignment/", {"polling_unit_code": another.code}, token=token
-        )
-        self.assertEqual((response.status_code, response.json()["error"]["code"]), (409, "assignment_limit_reached"))
-        self.assertFalse(agent.polling_units.filter(pk=another.pk).exists())
-
-    def test_openapi_documents_self_assignment_endpoints(self):
+    def test_openapi_does_not_expose_self_assignment_endpoints(self):
         response = self.client.get("/api/v1/openapi.json")
 
         self.assertEqual(response.status_code, 200)
         paths = response.json()["paths"]
-        self.assertIn("/agent/available-polling-units/", paths)
-        self.assertIn("/agent/claim-assignment/", paths)
+        self.assertNotIn("/agent/available-polling-units/", paths)
+        self.assertNotIn("/agent/claim-assignment/", paths)
 
     # ---------------------------------------------------------------- auth
     def test_login_pin_change_and_token_storage(self):
@@ -362,7 +319,9 @@ class ApiTests(TestCase):
         agent_id = r.json()["agent"]["id"]
         self.assertTrue(ResultAgent.objects.get(pk=agent_id).must_change_pin)
         r = self.call("post", f"/admin/agents/{agent_id}/assignments/", {"mode": "add", "ward": {"lga": "kano_municipal", "ward_index": 2}}, token=adm)
-        self.assertEqual(r.json()["agent"]["assigned_polling_units"], 2)
+        self.assertEqual(r.status_code, 422)
+        self.assertEqual(r.json()["error"]["code"], "validation_failed")
+        self.assertEqual(self.call("get", f"/admin/agents/{agent_id}/", token=adm).json()["agent"]["assigned_polling_units"], 1)
         r = self.call("post", "/auth/login/", {"phone": "08111111111", "pin": pin})
         self.assertEqual(r.status_code, 200)
         old_token = r.json()["token"]
@@ -374,11 +333,13 @@ class ApiTests(TestCase):
 
     def test_admin_switch_to_live_and_import(self):
         adm = self.login(self.admin)
-        self.assertEqual(self.call("get", "/public/config/").json()["mode"], "simulation")
+        self.assertEqual(self.call("get", "/public/config/").json()["mode"], "live")
         r = self.call("patch", "/admin/situation-room/", {"mode": "live"}, token=adm)
         self.assertEqual(r.status_code, 200, r.content)
         self.assertEqual(r.json()["config"]["mode"], "live")
         self.assertEqual(self.call("get", "/public/config/").json()["mode"], "live")
+        simulation = self.call("patch", "/admin/situation-room/", {"mode": "simulation"}, token=adm)
+        self.assertEqual(simulation.status_code, 422)
         csv_bytes = b"lga,ward,pu_number,name,registered_voters\nKano Municipal,Gandun Albasa,1,Primary School,612\n"
         up = SimpleUploadedFile("pus.csv", csv_bytes, content_type="text/csv")
         r = self.client.post("/api/v1/admin/polling-units/import/", {"file": up}, HTTP_AUTHORIZATION=f"Bearer {adm}")

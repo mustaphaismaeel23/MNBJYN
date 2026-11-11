@@ -30,7 +30,7 @@
         <a href="{% url 'core:home' %}#leadership">Leadership</a>
         <a href="{% url 'core:home' %}#situation-room">Situation Room</a>
         <a href="{% url 'core:home' %}#gallery">Gallery</a>
-        <a class="btn btn-sm" href="{% url 'core:register' %}">Register</a>
+        <a class="btn btn-sm" href="{% url 'core:home' %}#situation-room">Election results</a>
       </nav>
     </div>
   </header>
@@ -58,11 +58,10 @@
         </ul>
       </div>
       <div>
-        <h4>Get involved</h4>
+        <h4>Election monitoring</h4>
         <ul>
-          <li><a href="{% url 'core:register' %}">Register as a member</a></li>
           <li><a href="{% url 'core:home' %}#situation-room">Situation Room</a></li>
-          <li><a href="{% url 'core:home' %}#gallery">Photo gallery</a></li>
+          <li><a href="/admin/">Administrator panel</a></li>
         </ul>
       </div>
     </div>

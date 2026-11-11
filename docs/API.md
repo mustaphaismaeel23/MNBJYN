@@ -7,7 +7,7 @@ The back-end does three jobs:
 
 1. **Collects** polling-unit (PU) result sheets from agents in the field (the app you are building).
 2. **Reviews** them (supervisors verify / dispute / reject).
-3. **Serves** the live numbers to the website's *Situation Room*, which can be switched between a **simulation** and **live** results.
+3. **Serves** real submitted numbers to the website's live *Situation Room*. Sample results are not used.
 
 ```
    Field app (agents)        Supervisor app / web        Administrator
@@ -24,12 +24,11 @@ The back-end does three jobs:
 
 ## 1. Quick start for app developers
 
-1. Get the app's **base URL** and your registered agent account's phone + temporary PIN. An administrator must create the agent account, but does not need to assign your polling unit.
+1. Get the app's **base URL** and your administrator-created agent account's phone + temporary PIN. An administrator must create the account and assign exactly one polling unit.
 2. `POST /api/v1/auth/login/` → keep the `token`.
 3. The first login has `must_change_pin: true` → `POST /api/v1/auth/change-pin/`.
 4. `GET /api/v1/election/current/` → candidates (build the result form from this; **never hard-code candidates**).
-5. `GET /api/v1/agent/assignments/` → your assigned polling units. If `can_self_assign` is true, show the returned guidance and let the agent choose a unit.
-6. `GET /api/v1/agent/available-polling-units/` → browse unassigned active units; `POST /api/v1/agent/claim-assignment/` claims one. An agent may self-assign one unit; no administrator approval is needed. Claims cannot be changed by the agent.
+5. `GET /api/v1/agent/assignments/` → your administrator-assigned polling unit. The agent cannot browse or change assignments.
 7. `POST /api/v1/results/` → submit a result (generate a UUID `submission_id` on the phone first).
 8. Optionally `POST /api/v1/results/{id}/sheet/` → upload a photo of the signed result sheet.
 
@@ -105,7 +104,7 @@ Every error has the same shape:
 
 | Role | Who | Can |
 |---|---|---|
-| `agent` | Polling-unit agent | Log in, self-assign one available active PU if unassigned, read assignments, **submit** results for assigned PUs, upload sheet photos, read own submissions. |
+| `agent` | Polling-unit agent | Log in, read the administrator-assigned polling unit, **submit** results for that unit, upload sheet photos, read own submissions. |
 | `supervisor` | Ward / LGA collation officer | Read results in their area (whole state, or one LGA via `lga_scope`), **verify / dispute / reject**, see summaries. Cannot submit. |
 | `admin` | Results administrator | Everything above for the whole state, plus manage agents, assignments, polling units, elections, the Situation Room switch and read the audit log. |
 
@@ -162,7 +161,7 @@ Networks on election day are unreliable. Recommended pattern:
 2. Send `POST /results/`. On **201 or 200 (duplicate)** → mark *sent*. On network error / 5xx / 409 `conflict` / 429 → keep in queue and **retry the identical payload** with exponential back-off (2 s → 4 s → … max 60 s).
 3. On **4xx other than the above** → don't retry blindly; show the error to the agent so they can fix the figures, then create a **new** `submission_id`.
 4. When connectivity returns after a long gap you may send up to 20 queued items at once with `POST /results/batch/` (each item is judged separately, see below).
-5. Show the agent a status per PU from `GET /agent/assignments/` (`result.status`). If `can_self_assign` is true, display the response's `message`, let them browse available units and claim one without admin assignment.
+5. Show the agent the assigned PU and its status from `GET /agent/assignments/` (`result.status`). If no unit is assigned, tell the agent to contact an administrator; do not offer self-assignment.
 
 Retrying the same `submission_id` + same figures is always safe; you'll get the original record back with `"duplicate": true`.
 
@@ -200,7 +199,7 @@ Legend: 🌐 public · 🔑 any logged-in user · **A** agent · **S** superviso
 |---|---|
 | `GET /health/` | Liveness check. |
 | `GET /openapi.json` | OpenAPI 3 description. |
-| `GET /public/config/` | `mode` (`simulation`/`live`), `refresh_seconds`, election + candidates. **This is what the Situation Room reads to know which mode to show.** |
+| `GET /public/config/` | Always returns `mode: live`, `refresh_seconds`, election + candidates. |
 | `GET /public/structure/` | All 44 LGAs → database wards → polling units in one compact response. PU entries are arrays `[number, code, name, registered_voters]`. |
 | `GET /public/results/?since=<cursor>` | Public results. First call without `since` returns everything (`full: true`); then pass back the returned `cursor` to get **only changes**. Row: `{pu, registered, accredited, rejected, valid, votes:[…in candidate order…], by, at, status}`. `withdrawn` lists PU codes whose result was removed (disputed/rejected). `public_count` is the server's total, used by clients to self-check. |
 | `GET /public/summary/?lga=kano_municipal&ward=3` | Totals and per-candidate percentages for the state, an LGA or a ward. |
@@ -220,7 +219,7 @@ is reflected by the directory and Situation Room after the database migration.
 → `200`
 ```json
 { "token": "mnbjyn_…", "token_type": "Bearer", "expires_at": "2027-02-27T06:00:00+00:00",
-  "agent": { "id": 7, "full_name": "Aminu Musa", "role": "agent", "must_change_pin": true, "assigned_polling_units": 2, "…": "…" } }
+  "agent": { "id": 7, "full_name": "Aminu Musa", "role": "agent", "must_change_pin": true, "assigned_polling_units": 1, "…": "…" } }
 ```
 Phone numbers are normalised (`+234 801 234 5678` = `08012345678`).
 
@@ -243,15 +242,7 @@ Phone numbers are normalised (`+234 801 234 5678` = `08012345678`).
 ```
 `result` is `null` until a result exists.
 
-When `polling_units` is empty, the response sets `can_self_assign: true` and explains that the agent can choose an assignment without contacting an administrator.
-
-**`GET /agent/available-polling-units/`** **A** (`?lga=kano_municipal&ward=2&q=school&page=1`) returns active, unassigned polling units. It is empty after an agent has claimed a unit.
-
-**`POST /agent/claim-assignment/`** **A** claims one unit:
-```json
-{ "polling_unit_code": "20/21/03/007" }
-```
-→ `201` `{ "polling_unit": { ... }, "already_claimed": false }`. Repeating a claim for the same unit is safe and returns `200`; claiming a unit taken by another agent returns `409 polling_unit_claimed`. An agent can claim only one unit, and must ask an administrator to change or remove an assignment.
+When `polling_units` is empty, the response explains that the agent must contact an administrator. Assignment changes are administrator-only, and each agent is limited to one polling unit.
 
 **`POST /results/`** **A**
 ```json
@@ -293,12 +284,12 @@ Rules: all candidate ids required; `valid_votes` (if sent) must equal the sum; `
 | `GET /admin/agents/{id}/` · `PATCH` | Details (with assigned PUs) / edit `full_name, phone, role, lga_scope, is_active`. Deactivating signs the user out. |
 | `POST /admin/agents/{id}/reset-pin/` | New temporary PIN; unlocks; signs out everywhere. |
 | `POST /admin/agents/{id}/revoke-tokens/` | Sign out everywhere. |
-| `POST /admin/agents/{id}/assignments/` | `{ "mode": "add"\|"remove"\|"replace", "polling_unit_codes": [...], "ward": {"lga":"kano_municipal","ward_index":3}, "lga": "kano_municipal" }` |
+| `POST /admin/agents/{id}/assignments/` | Assign or replace one unit with `{ "mode": "replace", "polling_unit_codes": ["20/21/03/007"] }`. Group assignment is not allowed. |
 | `GET /admin/polling-units/?lga=&ward=&q=` · `PATCH /admin/polling-units/{code}/` | Browse / correct name, `registered_voters`, coordinates, `is_active`. |
 | `POST /admin/polling-units/import/` | CSV upload (see §7.3). |
 | `GET/POST /admin/elections/` · `PATCH /admin/elections/{id}/` | Create elections with candidates; set `is_current`. Candidates are locked once results exist. |
 | `GET /admin/situation-room/` | Current mode, **go-live warnings**, counters. |
-| `PATCH /admin/situation-room/` | `{ "mode": "live" \| "simulation", "publish_unverified": true, "refresh_seconds": 10 }`. Refuses `live` if there is no current election or no polling units. |
+| `PATCH /admin/situation-room/` | Configure `{ "mode": "live", "publish_unverified": true, "refresh_seconds": 10 }`. `simulation` is rejected. |
 | `GET /admin/audit/?action=&actor=` | Audit log. |
 
 ---
@@ -347,8 +338,8 @@ Kano Municipal,Gandun Albasa,1,"Primary School, Gandun Albasa",612,12.0,8.5,20/2
 ### 7.4 Going live
 
 1. `python manage.py check_live_ready` shows **critical** items to fix (also shown under *Situation Room settings* and in `GET /admin/situation-room/`).
-2. Switch: `/admin/` → *Situation Room settings* → mode **Live**, or `PATCH /api/v1/admin/situation-room/ {"mode":"live"}`.
-3. Open pages notice the change within ~30 s; new visitors see live immediately. In live mode **simulated numbers are never displayed**: if the API is unreachable the page says so and keeps the last real data.
+2. Configure live visibility: `/admin/` → *Situation Room settings*, or `PATCH /api/v1/admin/situation-room/ {"mode":"live"}`.
+3. Open Situation Room pages receive submissions on their configured polling interval. The dashboard never generates numbers; if the API is unreachable it reports the connection issue and retains only previously received live results.
 4. To go back, set the mode to **Simulation**.
 
 ### 7.5 ⚠ Security warnings before election day
@@ -371,7 +362,7 @@ core/api/
   views_admin.py   administrator endpoints   pu_import.py     CSV import / placeholder generator
   middleware.py    CORS + security headers   openapi.py       OpenAPI description
 core/models.py     Election, Candidate, PollingUnit, ResultAgent, ApiToken, ResultSubmission, AuditLog, SituationRoomConfig
-core/static/core/js/situation.js   Situation Room (simulation + live)
+core/static/core/js/situation.js   Live-only Situation Room
 core/tests_api.py  automated tests
 ```
 
@@ -379,10 +370,9 @@ core/tests_api.py  automated tests
 
 ## 8. How the Situation Room uses the API
 
-* On load it reads the mode injected into the page. In **simulation** it generates sample data in the browser (and checks `/public/config/` every 30 s in case the administrator switches to live).
-* In **live** mode it loads `/public/config/` (candidates) and `/public/structure/` (LGAs, wards, PUs), then polls `/public/results/?since=<cursor>` every `refresh_seconds` (default 10 s), applying only changes. Totals for the state, each LGA, ward and polling unit are computed from the per-PU results, so the numbers always add up.
+* It loads `/public/config/` (candidates) and `/public/structure/` (LGAs, wards, PUs), then polls `/public/results/?since=<cursor>` every `refresh_seconds` (default 10 s), applying only real submitted results. Totals for the state, each LGA, ward and polling unit are computed from the per-PU results.
 * If its count of reported PUs ever differs from the server's `public_count`, it downloads everything again.
-* Visitors can drill down **State → LGA → Ward → Polling unit** in both modes.
+* Visitors can drill down **State → LGA → Ward → Polling unit**. If the live API is unavailable, the dashboard shows a retry message and does not display generated results.
 
 ---
 

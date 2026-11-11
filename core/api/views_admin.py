@@ -75,6 +75,8 @@ def _apply_assignment(agent, mode, pus):
     if mode == "replace":
         agent.polling_units.set(pus)
     elif mode == "add":
+        if agent.polling_units.exclude(pk__in=[pu.pk for pu in pus]).exists():
+            raise v.ValidationFailed({"polling_unit_codes": "An agent can be assigned to only one polling unit."})
         agent.polling_units.add(*pus)
     elif mode == "remove":
         agent.polling_units.remove(*pus)
@@ -106,6 +108,8 @@ def agents_create(request):
     pus = _resolve_pus(data) if any(k in data for k in ("polling_unit_codes", "ward", "lga")) else []
     if pus and role != "agent":
         raise v.ValidationFailed({"role": "Only polling-unit agents have assigned polling units."})
+    if len(pus) > 1:
+        raise v.ValidationFailed({"polling_unit_codes": "Assign the agent to one polling unit at a time."})
     pin = v.generate_pin()
     agent = ResultAgent(full_name=name, phone=phone, role=role, lga_scope=scope, must_change_pin=True)
     agent.set_pin(pin)
@@ -170,6 +174,8 @@ def agent_update(request, pk):
         raise v.ValidationFailed(errors)
     if changed:
         agent.save(update_fields=changed + ["updated_at"])
+        if "role" in changed and agent.role != "agent":
+            agent.polling_units.clear()
         if "is_active" in changed and not agent.is_active:
             agent.tokens.filter(revoked_at__isnull=True).update(revoked_at=timezone.now())
         audit(request, "agent_update", target=agent.pk, fields=changed)
@@ -198,17 +204,25 @@ def agent_revoke_tokens(request, pk):
 
 @endpoint(roles=(ADMIN,))
 def agent_assign(request, pk):
-    """Body: {"mode": "add"|"remove"|"replace", and any of "polling_unit_codes": [...],
-    "ward": {"lga": "kano_municipal", "ward_index": 3}, "lga": "kano_municipal"}"""
-    agent = _agent_or_404(pk)
-    if agent.role != "agent":
-        raise v.ValidationFailed({"role": "Only polling-unit agents have assigned polling units."})
+    """Assign one active Kano polling unit; assignment changes are administrator-only."""
     data = get_json(request)
     pus = _resolve_pus(data)
+    if len(pus) > 1:
+        raise v.ValidationFailed({"polling_unit_codes": "An agent can be assigned to only one polling unit."})
     if not pus and data.get("mode") != "replace":
         raise v.ValidationFailed({"polling_unit_codes": "Select at least one polling unit."})
-    _apply_assignment(agent, data.get("mode", "add"), pus)
-    audit(request, "agent_assign", target=agent.pk, mode=data.get("mode", "add"), count=len(pus))
+    mode = data.get("mode", "add")
+    with transaction.atomic():
+        agent = ResultAgent.objects.select_for_update().filter(pk=pk).first()
+        if agent is None:
+            raise ApiError(404, "not_found", "No such agent.")
+        if agent.role != "agent":
+            raise v.ValidationFailed({"role": "Only polling-unit agents have assigned polling units."})
+        if mode == "replace" and not pus:
+            agent.polling_units.clear()
+        else:
+            _apply_assignment(agent, mode, pus)
+    audit(request, "agent_assign", target=agent.pk, mode=mode, count=len(pus))
     return json_response({"agent": services.agent_payload(agent, with_counts=True)})
 
 
@@ -391,21 +405,17 @@ def situation_get(request):
 
 @endpoint(roles=(ADMIN,))
 def situation_update(request):
-    """Body: {"mode": "simulation"|"live", "publish_unverified": bool, "refresh_seconds": 5-120}."""
+    """Configure live result visibility and refresh interval."""
     data = get_json(request)
     config = SituationRoomConfig.load()
     errors = {}
     if "mode" in data:
-        if data["mode"] not in ("simulation", "live"):
-            errors["mode"] = "Use simulation or live."
-        elif data["mode"] == "live":
-            if Election.current() is None:
-                raise ApiError(409, "not_ready", "Create a current election before going live.")
-            if not PollingUnit.objects.filter(is_active=True).exists():
-                raise ApiError(409, "not_ready", "Load polling units before going live.")
-            config.mode = "live"
-        else:
-            config.mode = "simulation"
+        if data["mode"] != "live":
+            errors["mode"] = "Only live results are supported; sample data is disabled."
+        elif Election.current() is None:
+            raise ApiError(409, "not_ready", "Create a current election before enabling live results.")
+        elif not PollingUnit.objects.filter(is_active=True).exists():
+            raise ApiError(409, "not_ready", "Load polling units before enabling live results.")
     if "publish_unverified" in data:
         if not isinstance(data["publish_unverified"], bool):
             errors["publish_unverified"] = "Must be true or false."

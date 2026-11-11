@@ -335,7 +335,7 @@ def config_payload():
     config = SituationRoomConfig.load()
     election = Election.current()
     return {
-        "mode": config.mode,
+        "mode": SituationRoomConfig.Mode.LIVE,
         "refresh_seconds": config.refresh_seconds,
         "publish_unverified": config.publish_unverified,
         "state": {"name": STATE_NAME, "code": STATE_CODE},
@@ -351,7 +351,7 @@ def public_results_payload(since=None):
     now = timezone.now()
     cursor = cursor_str(now - timedelta(seconds=5))     # small overlap so nothing is missed
     if election is None:
-        return {"mode": config.mode, "election_id": None, "cursor": cursor, "full": since is None,
+        return {"mode": SituationRoomConfig.Mode.LIVE, "election_id": None, "cursor": cursor, "full": since is None,
                 "public_count": 0, "results": [], "withdrawn": []}
     order = list(election.candidates.values_list("id", flat=True))
     allowed = public_statuses(config)
@@ -379,7 +379,7 @@ def public_results_payload(since=None):
         else:
             withdrawn.append(sub.polling_unit.code)
     return {
-        "mode": config.mode, "election_id": election.pk, "cursor": cursor, "full": since is None,
+        "mode": SituationRoomConfig.Mode.LIVE, "election_id": election.pk, "cursor": cursor, "full": since is None,
         "public_count": public_count, "results": results,
         "withdrawn": withdrawn if since is not None else [],
     }

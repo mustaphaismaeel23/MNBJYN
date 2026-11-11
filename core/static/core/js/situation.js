@@ -1,12 +1,5 @@
 /* Situation Room.
-   Two modes share the same screen:
-
-   * SIMULATION - animated sample results for the configured LGAs and wards, "submitted"
-     over time as agents would on election day. Not real data.
-   * LIVE       - real results sent by the field app, read from the results API
-     (/api/v1/public/...). The admin switches the mode in /admin > Situation Room settings
-     (or PATCH /api/v1/admin/situation-room/). Simulated numbers are NEVER shown in live mode.
-
+   Live results are fetched from the API. This screen never generates sample results.
    You can drill down: State > LGA > Ward > Polling unit. */
 (function () {
   "use strict";
@@ -14,7 +7,7 @@
   var root = document.getElementById("sit-live");
   var dataNode = document.getElementById("lga-data");
   if (!root || !dataNode) return;
-  var LGAS, CFG = { mode: "simulation", refresh_seconds: 10, state_code: "20", state_name: "Kano", api: "/api/v1" };
+  var LGAS, CFG = { mode: "live", refresh_seconds: 10, state_code: "20", state_name: "Kano", api: "/api/v1" };
   try { LGAS = JSON.parse(dataNode.textContent); } catch (e) { return; }
   try {
     var cfgNode = document.getElementById("sit-config");
@@ -34,26 +27,10 @@
   function fmt(n) { return Math.round(n).toLocaleString("en-NG"); }
   function pct(a, b) { return b ? (a / b) * 100 : 0; }
   function z(n, w) { n = String(n); while (n.length < w) n = "0" + n; return n; }
-  function hash(str) {
-    var h = 2166136261;
-    for (var i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
-    return h >>> 0;
-  }
-  function rng(seed) {            // mulberry32
-    var a = seed >>> 0;
-    return function () {
-      a = (a + 0x6D2B79F5) >>> 0;
-      var t = a;
-      t = Math.imul(t ^ (t >>> 15), t | 1);
-      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-    };
-  }
   function clock(d) {
     d = d || new Date();
     return z(d.getHours(), 2) + ":" + z(d.getMinutes(), 2) + ":" + z(d.getSeconds(), 2);
   }
-  function puCode(li, wi, num) { return CFG.state_code + "/" + z(li + 1, 2) + "/" + z(wi + 1, 2) + "/" + z(num, 3); }
   function puLabel(pu) {
     var base = "PU " + z(pu.num, 3);
     return pu.generic ? base : base + " \u00B7 " + pu.name;
@@ -78,16 +55,7 @@
   }
 
   /* ---------- model ---------- */
-  var SIM_PARTIES = [
-    { name: "Malam Nasiru Bala Ja'oji", short: "MNBJ", color: "#14B8A6" },
-    { name: "Candidate B", short: "B", color: "#FFFFFF" },
-    { name: "Candidate C", short: "C", color: "#99F6E4" },
-    { name: "Others", short: "Oth", color: "#6F86A6" }
-  ];
-  var PARTIES = SIM_PARTIES;
-  var BASE = [0.36, 0.32, 0.2, 0.12];
-  var FIRST = ["Aminu", "Abubakar", "Ibrahim", "Musa", "Yusuf", "Usman", "Hauwa", "Fatima", "Zainab", "Aisha", "Sani", "Bashir", "Umar", "Halima", "Idris", "Maryam", "Suleiman", "Nasiru", "Rabi", "Garba"];
-  var LAST = ["Mohammed", "Abdullahi", "Danjuma", "Bello", "Lawal", "Adamu", "Sule", "Ahmad", "Yakubu", "Baba", "Haruna", "Kabir", "Tanko", "Isah", "Gambo"];
+  var PARTIES = [];
 
   function zeros() { var a = []; for (var i = 0; i < PARTIES.length; i++) a.push(0); return a; }
   function blank() { return { n: 0, rep: 0, reg: 0, acc: 0, rej: 0, valid: 0, votes: zeros() }; }
@@ -98,79 +66,17 @@
   }
   function addAll(m, lga, ward, r, sign) { add(ward.tot, r, sign); add(lga.tot, r, sign); add(m.state, r, sign); }
 
-  var mode = "sim";           // "sim" | "live"
+  var mode = "live";
   var model;                  // the data currently on screen
 
   function newModel() {
-    return { lgas: [], state: blank(), wardsTotal: 0, history: [], order: [], pos: 0, seed: 0 };
-  }
-
-  /* ----- simulation ----- */
-  function buildSim(seed) {
-    var r0 = rng(seed), s = newModel();
-    s.seed = seed;
-    LGAS.forEach(function (l, li) {
-      var lga = { i: li, key: l.key, name: l.name, wards: [], tot: blank() };
-      l.wards.forEach(function (wardData, wi) {
-        var wardIndex = wardData.index;
-        var r = rng(hash(seed + ":" + l.key + ":" + wardIndex));
-        var n = 8 + Math.floor(r() * 8);
-        var lean = BASE.map(function (b) { return b * Math.exp((r() - 0.5) * 1.5); });
-        var sum = lean.reduce(function (a, b) { return a + b; }, 0);
-        lean = lean.map(function (v) { return v / sum; });
-        var ward = { name: wardData.name, lga: li, idx: wardIndex, n: n, lean: lean, pus: [], tot: blank() };
-        ward.tot.n = n; lga.tot.n += n; s.state.n += n;
-        for (var p = 0; p < n; p++) {
-          var rr = rng(hash(seed + ":" + l.key + ":" + wardIndex + ":" + p + ":reg"));
-          ward.pus.push({
-            num: p + 1, code: puCode(li, wardIndex, p + 1), name: "Polling Unit " + z(p + 1, 3), generic: true,
-            reg: 380 + Math.floor(rr() * 560), res: null
-          });
-          s.order.push([li, wi, p]);
-        }
-        lga.wards.push(ward);
-        s.wardsTotal++;
-      });
-      s.lgas.push(lga);
-    });
-    for (var i = s.order.length - 1; i > 0; i--) {   // Fisher-Yates
-      var j = Math.floor(r0() * (i + 1)), t = s.order[i]; s.order[i] = s.order[j]; s.order[j] = t;
-    }
-    return s;
-  }
-
-  function makeResult(ward, p) {
-    var pu = ward.pus[p];
-    var r = rng(hash(model.seed + ":" + ward.lga + ":" + ward.idx + ":" + p + ":r"));
-    var reg = pu.reg;
-    var acc = Math.round(reg * (0.38 + r() * 0.34));
-    var rej = Math.round(acc * (0.008 + r() * 0.02));
-    var valid = acc - rej;
-    var sh = ward.lean.map(function (v) { return v * Math.exp((r() - 0.5) * 0.55); });
-    var sum = sh.reduce(function (a, b) { return a + b; }, 0);
-    var votes = sh.map(function (v) { return Math.floor(valid * v / sum); });
-    var left = valid - votes.reduce(function (a, b) { return a + b; }, 0);
-    var top = 0; for (var i = 1; i < 4; i++) if (votes[i] > votes[top]) top = i;
-    votes[top] += left;
-    return {
-      reg: reg, acc: acc, rej: rej, valid: valid, votes: votes,
-      rep: FIRST[Math.floor(r() * FIRST.length)] + " " + LAST[Math.floor(r() * LAST.length)],
-      time: clock()
-    };
+    return { lgas: [], state: blank(), wardsTotal: 0, history: [] };
   }
 
   function recordHistory(lga, ward, pu, res, fresh) {
     model.history = model.history.filter(function (h) { return h.pu !== pu; });
     model.history.unshift({ lga: lga, ward: ward, pu: pu, res: res, fresh: fresh });
     if (model.history.length > 400) model.history.length = 400;
-  }
-
-  function simSubmit(item) {
-    var lga = model.lgas[item[0]], ward = lga.wards[item[1]], pu = ward.pus[item[2]];
-    var res = makeResult(ward, item[2]);
-    pu.res = res;
-    addAll(model, lga, ward, res, 1);
-    recordHistory(lga, ward, pu, res, true);
   }
 
   /* ----- live ----- */
@@ -242,7 +148,7 @@
   var elParties = $("sit-parties"), elFacts = $("sit-facts");
   var elFeed = $("sit-feed"), elFeedTitle = $("sit-feed-title");
   var elClock = $("sit-clock"), elMode = $("sit-mode-label");
-  var btnPause = $("sit-pause"), btnRestart = $("sit-restart");
+  var btnPause = $("sit-pause");
 
   var scope = { lga: -1, ward: -1, pu: -1 };
   var partyRows = [], factEls = {}, puOpts = [];
@@ -446,46 +352,8 @@
     selectScope(scope.lga, scope.ward, puSel.value === "" ? -1 : +puSel.value);
   });
 
-  /* ---------- simulation loop ---------- */
-  var timer = null, userPaused = false, visible = false, restartTimer = null;
-
-  function simTick() {
-    if (mode !== "sim" || !model) return;
-    var left = model.order.length - model.pos;
-    if (left <= 0) return simFinish();
-    model.history.forEach(function (h) { h.fresh = false; });
-    var batch = Math.min(left, 5 + Math.floor(Math.random() * 10));
-    for (var i = 0; i < batch; i++) simSubmit(model.order[model.pos++]);
-    elClock.textContent = "Updated " + clock();
-    renderAll();
-    if (model.pos >= model.order.length) simFinish();
-  }
-
-  function simFinish() {
-    simStop();
-    root.classList.add("complete");
-    elClock.textContent = "Collation complete \u00B7 " + clock();
-    clearTimeout(restartTimer);
-    restartTimer = setTimeout(function () { if (mode === "sim" && !userPaused) simRestart(); }, 15000);
-  }
-
-  function simStart() {
-    if (mode !== "sim" || timer || userPaused || !visible || !model || model.pos >= model.order.length) return;
-    timer = setInterval(simTick, 900);
-  }
-  function simStop() { clearInterval(timer); timer = null; }
-
-  function simRestart() {
-    clearTimeout(restartTimer); simStop();
-    root.classList.remove("complete");
-    model = buildSim((Date.now() & 0x7fffffff) || 1);
-    restoreScope();
-    elClock.textContent = "Waiting for first results\u2026";
-    renderAll();
-    if (visible && !userPaused) { simTick(); simStart(); }
-  }
-
   /* ---------- live loop ---------- */
+  var userPaused = false, visible = false;
   function api(path) {
     return fetch(CFG.api + path, { cache: "no-store", headers: { Accept: "application/json" } })
       .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); });
@@ -500,16 +368,24 @@
 
   function enterLive() {
     var gen = ++live.gen;
-    simStop(); clearTimeout(restartTimer); liveStop();
+    liveStop();
     mode = "live"; live.ready = false; live.cursor = null; live.fails = 0; live.busy = false;
+    scope = { lga: -1, ward: -1, pu: -1 };
+    model = newModel();
+    PARTIES = [];
+    buildParties();
+    renderAll();
     root.classList.remove("complete"); root.classList.add("is-live");
     elMode.textContent = "LIVE \u2022 Polling-unit results";
-    btnRestart.hidden = true;
     elClock.textContent = "Connecting to live results\u2026";
     Promise.all([api("/public/config/"), api("/public/structure/")]).then(function (res) {
       if (gen !== live.gen) return;
       var cfg = res[0], structure = res[1];
-      if (cfg.mode !== "live") return enterSim();
+      if (cfg.mode !== "live") {
+        elClock.textContent = "Live results are temporarily unavailable \u00B7 retrying\u2026";
+        live.timer = setTimeout(enterLive, 15000);
+        return;
+      }
       CFG.refresh_seconds = cfg.refresh_seconds || CFG.refresh_seconds;
       if (!cfg.election) {
         elClock.textContent = "Live mode is on but no election is set up yet.";
@@ -543,7 +419,11 @@
     api("/public/results/" + (live.cursor ? "?since=" + encodeURIComponent(live.cursor) : "")).then(function (data) {
       live.busy = false;
       if (gen !== live.gen) return;
-      if (data.mode !== "live") return enterSim();
+      if (data.mode !== "live") {
+        elClock.textContent = "Live results are temporarily unavailable \u00B7 retrying\u2026";
+        liveSchedule(15000);
+        return;
+      }
       if (data.election_id !== live.electionId) return enterLive();      // a different election is now current
       live.fails = 0;
       var changed = applyLive(data);
@@ -562,64 +442,33 @@
     });
   }
 
-  function enterSim() {
-    live.gen++; liveStop(); live.ready = false; live.busy = false;
-    mode = "sim";
-    root.classList.remove("is-live", "complete");
-    elMode.textContent = "LIVE \u2022 Results simulation";
-    btnRestart.hidden = false;
-    PARTIES = SIM_PARTIES; buildParties();
-    simRestart();
-  }
-
-  // While showing the simulation, notice if an administrator switches to live.
-  setInterval(function () {
-    if (mode !== "sim" || document.hidden) return;
-    api("/public/config/").then(function (cfg) { if (cfg.mode === "live" && mode === "sim") enterLive(); }).catch(function () {});
-  }, 30000);
-
   /* ---------- controls ---------- */
   btnPause.addEventListener("click", function () {
     userPaused = !userPaused;
     btnPause.textContent = userPaused ? "Resume" : "Pause";
     btnPause.setAttribute("aria-pressed", userPaused ? "true" : "false");
     root.classList.toggle("paused", userPaused);
-    if (mode === "live") { if (userPaused) liveStop(); else livePoll(); return; }
-    if (userPaused) simStop();
-    else if (model.pos >= model.order.length) simRestart(); else simStart();
-  });
-  btnRestart.addEventListener("click", function () {
-    if (mode !== "sim") return;
-    userPaused = false; btnPause.textContent = "Pause"; btnPause.setAttribute("aria-pressed", "false");
-    root.classList.remove("paused");
-    simRestart();
+    if (userPaused) liveStop();
+    else livePoll();
   });
 
   /* ---------- boot ---------- */
   buildStatic();
-  if (CFG.mode === "live") {
-    // Never start the sample data: go straight to the real results.
-    model = newModel();
-    renderAll();
-    enterLive();
-  } else {
-    model = buildSim((Date.now() & 0x7fffffff) || 1);
-    elClock.textContent = "Waiting for first results\u2026";
-    renderAll();
-  }
+  model = newModel();
+  renderAll();
+  enterLive();
 
   function setVisible(v) {
     visible = v;
-    if (mode === "live") { if (v) livePoll(); else liveStop(); return; }
-    if (v) { if (model.pos === 0) simTick(); simStart(); } else simStop();
+    if (v) livePoll(); else liveStop();
   }
   if ("IntersectionObserver" in window) {
     new IntersectionObserver(function (entries) {
       setVisible(entries[0].isIntersecting && !document.hidden);
     }, { threshold: 0.05 }).observe(root);
     document.addEventListener("visibilitychange", function () {
-      if (document.hidden) { if (mode === "live") liveStop(); else simStop(); }
-      else if (visible) { if (mode === "live") livePoll(); else simStart(); }
+      if (document.hidden) liveStop();
+      else if (visible) livePoll();
     });
   } else {
     setVisible(true);

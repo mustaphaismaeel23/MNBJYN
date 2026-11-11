@@ -1,7 +1,9 @@
-# Malam Nasiru Bala Ja'oji Youths Network (MNBJYN) – Website
+# MNBJYN Kano State Election Results System
 
-Django 5 website with a public site, a member registration form, and a
-branded admin (`/admin/`) for managing the responses.
+Django 5 backend and web-based Kano election results dashboard with administrator-managed
+agents, polling-unit assignments, elections, submissions and reviews. Member registration
+and the member workspace are disabled. This repository does not currently contain a Flutter
+project or a built Android APK.
 
 ## Quick start
 
@@ -23,24 +25,20 @@ python manage.py migrate
 ```
 
 * Website: http://127.0.0.1:8000/
-* Registration form: http://127.0.0.1:8000/register/
+* Live results dashboard: http://127.0.0.1:8000/#situation-room
 * Admin: http://127.0.0.1:8000/admin/
 
 ## Pages
 
 | URL | What it is |
 |-----|-----------|
-| `/` | Home: hero, About (vision & mission), Objectives, Strategies, Core Values, Stakeholders & Electoral Oversight, Situation Room, Leadership (Zonal Executive Committee), Photo Gallery, final CTA |
-| `/register/` | Member registration form (the "Register" buttons point here) |
-| `/register/thank-you/` | Confirmation with a reference number (MNBJYN-00001) |
+| `/` | Kano election results dashboard and public site |
 | `/admin/` | Admin only |
 
 ## Admin (`/admin/`)
 
-* **Dashboard**: totals, awaiting review, last 7 days, gender, PWDs, no PVC, by-LGA chart, latest sign-ups.
-* **Registrations**: search, filter (status, LGA, gender, age, PVC, etc.), date drill-down,
-  bulk actions (Reviewed / Approved / Rejected), **Export to CSV** (opens in Excel),
-  internal notes per registration.
+* **Election operations dashboard**: real polling-unit coverage by LGA, agent assignments,
+  submissions awaiting review, approved and rejected result totals.
 * **Site settings**: upload a portrait of Malam Nasiru Bala Ja'oji (~4:5 works best) and edit its caption.
   Until a photo is uploaded, a neutral MNBJYN brand graphic is shown.
 * **Gallery photos**: add photos, captions, ordering, publish/unpublish. Five supplied
@@ -92,7 +90,7 @@ config/            settings, urls, wsgi/asgi
 core/
   models.py        Registration, SiteSettings, GalleryImage
   forms.py         registration form (validation, duplicate-phone check, honeypot)
-  views.py         home, register, thank_you
+  views.py         public home and media
   content.py       all website text
   admin.py         admin configuration (+ CSV export, bulk actions)
   admin_site.py    dashboard statistics
@@ -101,13 +99,7 @@ core/
 ```
 
 
-## Main admin member workspace
-
-A branded, staff-only member management interface is available at `/mainadmin/`.
-Sign in with a Django staff/superuser account. It supports searching and filtering
-registrations, adding records, editing member details/status/notes, and confirming
-deletion. The standard Django admin remains available at `/admin/` for advanced
-management and CSV export. Its dashboard also provides election operations shortcuts
+The staff-only Django admin at `/admin/` provides election operations shortcuts
 for elections, polling units, results agents/PINs, result reviews, Situation Room
 settings and the audit log, along with live counts for agents, polling units and
 results needing review. Manage the ward directory under **Wards**: rename wards,
@@ -129,7 +121,7 @@ Django admin to replace the curated fallback gallery.
 
 ## Design system (October 2026)
 
-The public site and the custom member workspace use a shared visual direction: restrained editorial typography, generous spacing, clear content hierarchy, quiet surfaces and thin dividers. MNBJYN's red remains the primary accent, supported by white, charcoal and cool neutral backgrounds.
+The public dashboard uses restrained typography, generous spacing, clear content hierarchy, quiet surfaces and thin dividers. MNBJYN's red remains the primary accent, supported by white, charcoal and cool neutral backgrounds.
 
 - **Typography:** Manrope for display/headings and DM Sans for body/UI. These are close-fit substitutions, not fonts verified from Elasto.ng's computed styles.
 - **Palette:** MNBJYN red `#D7192D`, charcoal `#15171C`, white `#FFFFFF`, cool wash `#F6F7F8`, and divider `#E4E6EA`. These values are project design tokens, not a claim about Elasto's palette.
@@ -171,17 +163,15 @@ will not survive. Use object storage (e.g. Cloudinary / S3) for uploads.
 ## October 2026 update
 
 * **Super-user:** `python manage.py migrate` creates the admin account **Devmusteey** when
-  `DJANGO_SUPERUSER_PASSWORD` is set. It works at `/admin/` and `/mainadmin/`.
+  `DJANGO_SUPERUSER_PASSWORD` is set. It works at `/admin/`.
   Override with `DJANGO_SUPERUSER_USERNAME` / `DJANGO_SUPERUSER_PASSWORD`; repair or reset any time with
   `python manage.py ensure_superuser`. (On Vercel the migration runs automatically on cold start.)
 * **All 44 LGAs:** `core/kano_lgas.json` provides the initial LGA and ward catalog; the database-backed
-  ward list is editable in `/admin/`. Registration suggestions and election directory views use that
-  catalog. Ward code indexes stay fixed when names or display order change.
+  ward list is editable in `/admin/`. Ward code indexes stay fixed when names or display order change.
 * **Home page:** the LGA box is a dropdown on the same row as 2026 and 2027. Choosing an LGA reveals
   its ward dropdown, and the chosen LGA and ward are shown together.
-* **Situation Room:** an animated live-results *simulation* (sample data, clearly labelled) with statewide
-  totals, a per-LGA tile map, LGA and ward selectors, and polling-unit submissions by representatives.
-  Code: `core/static/core/js/situation.js`. To use real data later, replace the generator in that file.
+* **Situation Room:** live results only, with statewide totals and LGA, ward and polling-unit selectors.
+  When no real results are available it shows an empty state; it never generates sample numbers.
 
 ## Update: photos, executives and team
 
@@ -211,10 +201,7 @@ Pages are also sent with `Cache-Control: no-store`, so browsers/CDNs never show 
 
 ## Election-day results API and live Situation Room (new)
 
-* **Situation Room:** now drills down **State > LGA > Ward > Polling unit** (new "Polling unit" selector).
-  It runs in two modes: **simulation** (sample data) and **live** (real results sent by the field app).
-  Switch in `/admin/` > *Situation Room settings* (or `PATCH /api/v1/admin/situation-room/`).
-  Simulated numbers are never shown in live mode.
+* **Situation Room:** drills down **Kano State > LGA > Ward > Polling unit**. It displays real results only.
 * **REST API** under `/api/v1/` for the results app: login (phone + PIN, bearer tokens), assignments,
   result submission (single, batch, idempotent, with anomaly confirmation), result-sheet photos,
   supervisor review, admin management, polling-unit import, audit log.
@@ -239,15 +226,8 @@ person sign in to the Android app; create a results agent with the `agent` role 
    python manage.py create_agent --name "Agent Name" --phone 08012345678 --role agent
    ```
 
-3. If an agent needs a different polling unit, edit the agent's **Polling units** field in `/admin/`.
-   An unassigned agent may also claim **one active, unassigned polling unit** in a compatible
-   Android app. After a claim, only an administrator can change or remove that assignment.
-4. For self-assignment, deploy the backend endpoints and install an APK that supports the flow.
-   The app checks `GET /api/v1/agent/assignments/`; when the agent has no assignment, it fetches
-   available units with `GET /api/v1/agent/available-polling-units/` and claims the chosen unit
-   with `POST /api/v1/agent/claim-assignment/`, sending
-   `{"polling_unit_code":"20/21/03/007"}`. If another agent claims the same unit first, refresh
-   the available list and choose another.
+3. If an agent needs a different polling unit, an administrator must replace the assignment in
+   `/admin/`. Agents cannot claim or alter assignments.
 
 An agent account must be active and have the `agent` role to use these endpoints. See
 [`docs/API.md`](docs/API.md) for request/response details and error codes.
@@ -256,7 +236,7 @@ An agent account must be active and have the `agent` role to use these endpoints
 
 ```bash
 python manage.py migrate                    # adds the new tables + a starter election
-python manage.py seed_polling_units         # PLACEHOLDER polling units for testing
+python manage.py seed_polling_units         # PLACEHOLDER polling units for testing only
 python manage.py import_polling_units official.csv --replace   # the real INEC list
 python manage.py create_agent --name "Admin" --phone 08000000000 --role admin
 python manage.py check_live_ready           # go-live checklist

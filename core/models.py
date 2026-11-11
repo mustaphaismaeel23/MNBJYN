@@ -292,10 +292,9 @@ class SituationRoomConfig(models.Model):
     """Single row controlling what the home-page Situation Room shows."""
 
     class Mode(models.TextChoices):
-        SIMULATION = "simulation", "Simulation (sample data)"
         LIVE = "live", "Live (real results from agents)"
 
-    mode = models.CharField(max_length=12, choices=Mode.choices, default=Mode.SIMULATION)
+    mode = models.CharField(max_length=12, choices=Mode.choices, default=Mode.LIVE)
     publish_unverified = models.BooleanField(
         "Show results before a supervisor verifies them",
         default=True,

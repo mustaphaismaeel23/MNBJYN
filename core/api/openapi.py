@@ -18,7 +18,7 @@ SUBMISSION_EX = {
 AGENT_EX = {"id": 7, "full_name": "Aminu Musa", "phone": "08012345678", "role": "agent", "lga_scope": "",
             "is_active": True, "must_change_pin": False, "is_locked": False,
             "last_login_at": "2027-02-25T06:55:00+00:00", "created_at": "2027-02-10T09:00:00+00:00",
-            "assigned_polling_units": 2}
+            "assigned_polling_units": 1}
 
 PUBLIC, AGENT, REVIEW, ADMIN = "public", "agent", "supervisor|admin", "admin"
 
@@ -26,7 +26,7 @@ PUBLIC, AGENT, REVIEW, ADMIN = "public", "agent", "supervisor|admin", "admin"
 ENDPOINTS = [
     ("get", "/health/", "System", "Health check", PUBLIC, None, {"status": "ok", "service": "mnbjyn-results-api", "version": "1"}, []),
 
-    ("get", "/public/config/", "Public", "Situation Room mode, election and candidates", PUBLIC, None,
+    ("get", "/public/config/", "Public", "Live Situation Room election and candidates", PUBLIC, None,
      {"mode": "live", "refresh_seconds": 10, "publish_unverified": True, "state": {"name": "Kano", "code": "20"},
       "election": {"id": 1, "name": "2027 Governorship – Kano State", "slug": "kano-gov-2027", "election_date": None, "is_current": True, "candidates": [CAND_EX]},
       "server_time": "2027-02-25T14:00:00+00:00"}, []),
@@ -63,12 +63,6 @@ ENDPOINTS = [
      {"election": {"id": 1, "name": "2027 Governorship – Kano State", "slug": "kano-gov-2027", "election_date": None, "is_current": True, "candidates": [CAND_EX]}}, []),
     ("get", "/agent/assignments/", "App", "My polling units and the state of each result", "agent", None,
      {"election": {"id": 1, "name": "…"}, "polling_units": [{"code": "20/21/03/007", "number": 7, "name": "Polling Unit 007", "lga": "kano_municipal", "lga_name": "Kano Municipal", "ward_index": 2, "ward_name": "Gandun Albasa", "registered_voters": 612, "latitude": None, "longitude": None, "is_active": True, "result": None}], "can_self_assign": False, "message": ""}, []),
-    ("get", "/agent/available-polling-units/", "App", "Find active polling units available for self-assignment", "agent", None,
-     {"count": 1, "page": 1, "page_size": 100, "pages": 1, "polling_units": [{"code": "20/21/03/008", "number": 8, "name": "Polling Unit 008", "lga": "kano_municipal", "lga_name": "Kano Municipal", "ward_index": 2, "ward_name": "Gandun Albasa", "registered_voters": 0, "latitude": None, "longitude": None, "is_active": True}]},
-     [("lga", "Optional LGA key"), ("ward", "Optional ward index; requires lga"), ("q", "Search code, name or ward"), ("page", ""), ("page_size", "max 200")]),
-    ("post", "/agent/claim-assignment/", "App", "Claim one unassigned active polling unit", "agent",
-     {"polling_unit_code": "20/21/03/008"},
-     {"polling_unit": {"code": "20/21/03/008", "number": 8, "name": "Polling Unit 008", "lga": "kano_municipal", "lga_name": "Kano Municipal", "ward_index": 2, "ward_name": "Gandun Albasa", "registered_voters": 0, "latitude": None, "longitude": None, "is_active": True}, "already_claimed": False}, []),
     ("post", "/results/", "Results", "Submit a polling-unit result", "agent",
      {"submission_id": UUID_EX, "polling_unit_code": "20/21/03/007", "registered_voters": 612, "accredited_voters": 301,
       "rejected_votes": 4, "valid_votes": 297, "votes": {"1": 120, "2": 98, "3": 51, "4": 28},
@@ -98,8 +92,8 @@ ENDPOINTS = [
     ("patch", "/admin/agents/{id}/", "Admin", "Edit / deactivate an agent", ADMIN, {"is_active": False}, {"agent": AGENT_EX}, []),
     ("post", "/admin/agents/{id}/reset-pin/", "Admin", "Issue a new temporary PIN (signs the agent out everywhere)", ADMIN, None, {"agent": AGENT_EX, "temporary_pin": "804712"}, []),
     ("post", "/admin/agents/{id}/revoke-tokens/", "Admin", "Sign the agent out everywhere", ADMIN, None, {"revoked": 2}, []),
-    ("post", "/admin/agents/{id}/assignments/", "Admin", "Assign polling units to an agent", ADMIN,
-     {"mode": "add", "polling_unit_codes": ["20/21/03/008"], "ward": {"lga": "kano_municipal", "ward_index": 3}}, {"agent": AGENT_EX}, []),
+    ("post", "/admin/agents/{id}/assignments/", "Admin", "Assign one polling unit to an agent", ADMIN,
+     {"mode": "replace", "polling_unit_codes": ["20/21/03/007"]}, {"agent": AGENT_EX}, []),
     ("get", "/admin/polling-units/", "Admin", "List polling units", ADMIN, None, {"count": 2466, "page": 1, "page_size": 100, "pages": 25, "polling_units": []}, [("lga", ""), ("ward", ""), ("q", ""), ("page", "")]),
     ("post", "/admin/polling-units/import/", "Admin", "Import the official polling-unit list (CSV, multipart field 'file'; optional 'replace=true')", ADMIN, "multipart/form-data", {"rows": 140, "created": 0, "updated": 140, "removed": 0, "deactivated": 0}, []),
     ("patch", "/admin/polling-units/{code}/", "Admin", "Edit a polling unit (use dashes in the URL: 20-21-03-007)", ADMIN, {"name": "Primary School, Gandun Albasa", "registered_voters": 612, "latitude": 12.0, "longitude": 8.5}, {"polling_unit": {}}, []),
@@ -110,8 +104,8 @@ ENDPOINTS = [
      {"election": {}}, []),
     ("patch", "/admin/elections/{id}/", "Admin", "Edit an election (candidates only before results exist)", ADMIN, {"is_current": True}, {"election": {}}, []),
     ("get", "/admin/situation-room/", "Admin", "Situation Room mode, go-live warnings, stats", ADMIN, None,
-     {"config": {"mode": "simulation", "publish_unverified": True, "refresh_seconds": 10}, "election": {}, "warnings": [{"level": "critical", "message": "…"}], "stats": {"polling_units": 2466, "agents": 0, "submissions_current": 0}}, []),
-    ("patch", "/admin/situation-room/", "Admin", "Switch between simulation and live", ADMIN, {"mode": "live"}, {"config": {"mode": "live"}}, []),
+     {"config": {"mode": "live", "publish_unverified": True, "refresh_seconds": 10}, "election": {}, "warnings": [{"level": "critical", "message": "…"}], "stats": {"polling_units": 2466, "agents": 0, "submissions_current": 0}}, []),
+    ("patch", "/admin/situation-room/", "Admin", "Configure live result visibility", ADMIN, {"mode": "live"}, {"config": {"mode": "live"}}, []),
     ("get", "/admin/audit/", "Admin", "Audit log", ADMIN, None, {"count": 1, "page": 1, "page_size": 100, "pages": 1, "entries": []}, [("action", ""), ("actor", "agent id"), ("page", "")]),
 ]
 

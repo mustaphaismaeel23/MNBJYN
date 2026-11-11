@@ -13,7 +13,7 @@
       <h1> Explore our digital platform</h1>
       <p class="lead">The {{ ORG_NAME }} is a youth-centered, non-profit political organization built on a strong belief in youth inclusion in democratic processes.</p>
       <div class="hero-cta">
-        <a class="btn btn-lg" href="{% url 'core:register' %}">Register to join the network <span aria-hidden="true">&rarr;</span></a>
+        <a class="btn btn-lg" href="#situation-room">View election results <span aria-hidden="true">&rarr;</span></a>
         <a class="btn btn-lg btn-outline" href="#about">Learn more</a>
       </div>
       <ul class="hero-facts">
@@ -178,16 +178,15 @@
         <h2>The Situation Room</h2>
         <p class="sub">{{ content.SITUATION_ROOM }}</p>
       </div>
-      <a class="btn btn-lg" href="{% url 'core:register' %}">Volunteer for election duty <span aria-hidden="true">&rarr;</span></a>
+      <span class="btn btn-lg">Kano State live results</span>
     </div>
 
     <div class="sit-live reveal" id="sit-live">
       <div class="sit-bar">
-        <b id="sit-mode-label">LIVE &bull; Results simulation</b>
+        <b id="sit-mode-label">LIVE &bull; Election results</b>
         <span class="sit-clock" id="sit-clock" aria-hidden="true"></span>
         <span class="sit-ctrl">
           <button type="button" id="sit-pause" class="sit-btn" aria-pressed="false">Pause</button>
-          <button type="button" id="sit-restart" class="sit-btn">Restart</button>
         </span>
       </div>
       
@@ -228,7 +227,7 @@
         </div>
       </div>
     </div>
-    <noscript><p class="sub">The live results simulation needs JavaScript.</p></noscript>
+    <noscript><p class="sub">Live results require JavaScript. No sample results are displayed.</p></noscript>
   </div>
 </section>
 
@@ -335,10 +334,10 @@
 <section class="cta-band on-red" id="join">
   <div class="wrap cta-inner reveal">
     <div>
-      <h2>Be part of the movement.</h2>
-      <p>Register today and take your place in a structured, grassroots network of politically informed youths across {{ STATE_NAME }} State.</p>
+      <h2>Kano State election results</h2>
+      <p>Monitor results submitted from polling units across all 44 Local Government Areas.</p>
     </div>
-    <a class="btn btn-lg" href="{% url 'core:register' %}">Register now <span aria-hidden="true">&rarr;</span></a>
+    <a class="btn btn-lg" href="#situation-room">View results <span aria-hidden="true">&rarr;</span></a>
   </div>
 </section>
 

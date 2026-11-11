@@ -1,102 +1,9 @@
-import csv
-
 from django import forms
 from django.contrib import admin, messages
-from django.http import HttpResponse
-from django.utils import timezone
 from django.utils.html import format_html, format_html_join
 
 from .lga_data import KANO_LGAS, pu_code
-from .models import Executive, GalleryImage, Registration, SiteSettings, TeamMember
-
-
-@admin.register(Registration)
-class RegistrationAdmin(admin.ModelAdmin):
-    list_display = (
-        "reference_col", "full_name", "gender", "age_range", "phone",
-        "lga", "ward", "pvc_status", "status_badge", "created_at",
-    )
-    list_display_links = ("reference_col", "full_name")
-    list_filter = (
-        "status", "lga", "gender", "age_range", "occupation_status",
-        "pvc_status", "has_disability", "created_at",
-    )
-    search_fields = ("full_name", "phone", "email", "ward", "community", "institution_or_workplace")
-    date_hierarchy = "created_at"
-    list_per_page = 50
-    save_on_top = True
-    actions = ["mark_reviewed", "mark_approved", "mark_rejected", "export_csv"]
-    readonly_fields = ("created_at", "updated_at", "consent", "interests_display")
-
-    fieldsets = (
-        ("Personal details", {"fields": ("full_name", "gender", "age_range", "phone", "email")}),
-        ("Location", {"fields": ("lga", "ward", "community")}),
-        ("Background", {"fields": ("occupation_status", "institution_or_workplace", "has_disability")}),
-        ("Participation", {"fields": ("pvc_status", "interests", "interests_display", "message")}),
-        ("Review", {"fields": ("status", "admin_notes")}),
-        ("Record", {"fields": ("consent", "created_at", "updated_at")}),
-    )
-
-    @admin.display(description="Ref", ordering="id")
-    def reference_col(self, obj):
-        return obj.reference
-
-    @admin.display(description="Interests")
-    def interests_display(self, obj):
-        items = obj.interest_list
-        return ", ".join(items) if items else "—"
-
-    @admin.display(description="Status", ordering="status")
-    def status_badge(self, obj):
-        colors = {
-            "new": "#b45309", "reviewed": "#1d4ed8",
-            "approved": "#047857", "rejected": "#b91c1c",
-        }
-        return format_html(
-            '<span style="background:{};color:#fff;padding:2px 9px;border-radius:99px;'
-            'font-size:11px;font-weight:600">{}</span>',
-            colors.get(obj.status, "#555"), obj.get_status_display(),
-        )
-
-    def _set_status(self, request, queryset, status, label):
-        updated = queryset.update(status=status, updated_at=timezone.now())
-        self.message_user(request, f"{updated} registration(s) marked as {label}.", messages.SUCCESS)
-
-    @admin.action(description="Mark selected as Reviewed")
-    def mark_reviewed(self, request, queryset):
-        self._set_status(request, queryset, Registration.Status.REVIEWED, "reviewed")
-
-    @admin.action(description="Mark selected as Approved")
-    def mark_approved(self, request, queryset):
-        self._set_status(request, queryset, Registration.Status.APPROVED, "approved")
-
-    @admin.action(description="Mark selected as Rejected")
-    def mark_rejected(self, request, queryset):
-        self._set_status(request, queryset, Registration.Status.REJECTED, "rejected")
-
-    @admin.action(description="Export selected to CSV")
-    def export_csv(self, request, queryset):
-        response = HttpResponse(content_type="text/csv; charset=utf-8")
-        stamp = timezone.localtime().strftime("%Y%m%d-%H%M")
-        response["Content-Disposition"] = f'attachment; filename="ssbyn-registrations-{stamp}.csv"'
-        response.write("﻿")  # BOM so Excel reads UTF-8 correctly
-        writer = csv.writer(response)
-        writer.writerow([
-            "Reference", "Full name", "Gender", "Age range", "Phone", "Email",
-            "LGA", "Ward", "Community", "Status", "Institution/Workplace",
-            "Person with disability", "PVC status", "Interests", "Message",
-            "Review status", "Internal notes", "Registered at",
-        ])
-        for r in queryset.iterator():
-            writer.writerow([
-                r.reference, r.full_name, r.get_gender_display(), r.age_range, r.phone, r.email,
-                r.get_lga_display(), r.ward, r.community, r.get_occupation_status_display(),
-                r.institution_or_workplace, "Yes" if r.has_disability else "No",
-                r.get_pvc_status_display(), "; ".join(r.interest_list), r.message,
-                r.get_status_display(), r.admin_notes,
-                timezone.localtime(r.created_at).strftime("%Y-%m-%d %H:%M"),
-            ])
-        return response
+from .models import Executive, GalleryImage, SiteSettings, TeamMember
 
 
 @admin.register(SiteSettings)
@@ -238,6 +145,21 @@ class ResultAgentCreationForm(forms.ModelForm):
         agent.polling_units.set([polling_unit] if polling_unit else [])
 
 
+class ResultAgentUpdateForm(forms.ModelForm):
+    class Meta:
+        model = ResultAgent
+        exclude = ("pin_hash",)
+
+    def clean_polling_units(self):
+        polling_units = self.cleaned_data["polling_units"]
+        role = self.cleaned_data.get("role", self.instance.role)
+        if role == ResultAgent.Role.AGENT and polling_units.count() != 1:
+            raise forms.ValidationError("Assign each polling-unit agent to exactly one polling unit.")
+        if role != ResultAgent.Role.AGENT and polling_units.exists():
+            raise forms.ValidationError("Only polling-unit agents can have polling-unit assignments.")
+        return polling_units
+
+
 class CandidateInline(admin.TabularInline):
     model = Candidate
     extra = 0
@@ -253,9 +175,9 @@ class ElectionAdmin(admin.ModelAdmin):
 
 @admin.register(SituationRoomConfig)
 class SituationRoomConfigAdmin(admin.ModelAdmin):
-    """The simulation / live switch. Open it from the admin home page."""
+    """Configure live Situation Room visibility."""
 
-    fields = ("mode", "publish_unverified", "refresh_seconds", "go_live_checks")
+    fields = ("publish_unverified", "refresh_seconds", "go_live_checks")
     readonly_fields = ("go_live_checks",)
 
     @admin.display(description="Go-live checks")
@@ -403,6 +325,7 @@ class ResultAgentAdmin(admin.ModelAdmin):
     search_fields = ("full_name", "phone")
     autocomplete_fields = ("polling_units",)
     exclude = ("pin_hash",)
+    form = ResultAgentUpdateForm
     readonly_fields = ("failed_logins", "locked_until", "last_login_at", "created_at", "updated_at")
     actions = ["reset_pin", "unlock"]
 
@@ -440,6 +363,8 @@ class ResultAgentAdmin(admin.ModelAdmin):
             obj.set_pin(pin)
             obj.must_change_pin = True
         super().save_model(request, obj, form, change)
+        if change and obj.role != ResultAgent.Role.AGENT:
+            obj.polling_units.clear()
         if pin:
             messages.warning(request, f"Temporary PIN for {obj.full_name}: {pin}  (shown once - give it to the agent securely).")
 

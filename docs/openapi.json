@@ -63,7 +63,7 @@
         "tags": [
           "Public"
         ],
-        "summary": "Situation Room mode, election and candidates",
+        "summary": "Live Situation Room election and candidates",
         "description": "Who can call it: **public**.",
         "responses": {
           "200": {
@@ -80,7 +80,7 @@
                   },
                   "election": {
                     "id": 1,
-                    "name": "2027 Governorship – Kano State",
+                    "name": "2027 Governorship \u2013 Kano State",
                     "slug": "kano-gov-2027",
                     "election_date": null,
                     "is_current": true,
@@ -273,7 +273,7 @@
                 "example": {
                   "election": {
                     "id": 1,
-                    "name": "2027 Governorship – Kano State"
+                    "name": "2027 Governorship \u2013 Kano State"
                   },
                   "scope": {
                     "lga": "kano_municipal",
@@ -529,7 +529,7 @@
             "content": {
               "application/json": {
                 "example": {
-                  "token": "mnbjyn_…",
+                  "token": "mnbjyn_\u2026",
                   "token_type": "Bearer",
                   "expires_at": "2027-02-27T06:00:00+00:00",
                   "agent": {
@@ -543,7 +543,7 @@
                     "is_locked": false,
                     "last_login_at": "2027-02-25T06:55:00+00:00",
                     "created_at": "2027-02-10T09:00:00+00:00",
-                    "assigned_polling_units": 2
+                    "assigned_polling_units": 1
                   }
                 }
               }
@@ -646,7 +646,7 @@
                     "is_locked": false,
                     "last_login_at": "2027-02-25T06:55:00+00:00",
                     "created_at": "2027-02-10T09:00:00+00:00",
-                    "assigned_polling_units": 2
+                    "assigned_polling_units": 1
                   },
                   "token_expires_at": "2027-02-27T06:00:00+00:00"
                 }
@@ -745,7 +745,7 @@
                 "example": {
                   "election": {
                     "id": 1,
-                    "name": "2027 Governorship – Kano State",
+                    "name": "2027 Governorship \u2013 Kano State",
                     "slug": "kano-gov-2027",
                     "election_date": null,
                     "is_current": true,
@@ -802,7 +802,7 @@
                 "example": {
                   "election": {
                     "id": 1,
-                    "name": "…"
+                    "name": "\u2026"
                   },
                   "polling_units": [
                     {
@@ -848,178 +848,6 @@
             "bearerAuth": []
           }
         ]
-      }
-    },
-    "/agent/available-polling-units/": {
-      "get": {
-        "tags": [
-          "App"
-        ],
-        "summary": "Find active polling units available for self-assignment",
-        "description": "Who can call it: **agent**.",
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "example": {
-                  "count": 1,
-                  "page": 1,
-                  "page_size": 100,
-                  "pages": 1,
-                  "polling_units": [
-                    {
-                      "code": "20/21/03/008",
-                      "number": 8,
-                      "name": "Polling Unit 008",
-                      "lga": "kano_municipal",
-                      "lga_name": "Kano Municipal",
-                      "ward_index": 2,
-                      "ward_name": "Gandun Albasa",
-                      "registered_voters": 0,
-                      "latitude": null,
-                      "longitude": null,
-                      "is_active": true
-                    }
-                  ]
-                }
-              }
-            }
-          },
-          "4XX": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "example": {
-                  "error": {
-                    "code": "validation_failed",
-                    "message": "Some fields are invalid.",
-                    "fields": {
-                      "votes": "Missing candidate id(s): 4."
-                    }
-                  }
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "lga",
-            "in": "query",
-            "required": false,
-            "description": "Optional LGA key",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "ward",
-            "in": "query",
-            "required": false,
-            "description": "Optional ward index; requires lga",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "q",
-            "in": "query",
-            "required": false,
-            "description": "Search code, name or ward",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "page",
-            "in": "query",
-            "required": false,
-            "description": "",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "page_size",
-            "in": "query",
-            "required": false,
-            "description": "max 200",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ]
-      }
-    },
-    "/agent/claim-assignment/": {
-      "post": {
-        "tags": [
-          "App"
-        ],
-        "summary": "Claim one unassigned active polling unit",
-        "description": "Who can call it: **agent**.",
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "example": {
-                  "polling_unit": {
-                    "code": "20/21/03/008",
-                    "number": 8,
-                    "name": "Polling Unit 008",
-                    "lga": "kano_municipal",
-                    "lga_name": "Kano Municipal",
-                    "ward_index": 2,
-                    "ward_name": "Gandun Albasa",
-                    "registered_voters": 0,
-                    "latitude": null,
-                    "longitude": null,
-                    "is_active": true
-                  },
-                  "already_claimed": false
-                }
-              }
-            }
-          },
-          "4XX": {
-            "description": "Error",
-            "content": {
-              "application/json": {
-                "example": {
-                  "error": {
-                    "code": "validation_failed",
-                    "message": "Some fields are invalid.",
-                    "fields": {
-                      "votes": "Missing candidate id(s): 4."
-                    }
-                  }
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "example": {
-                "polling_unit_code": "20/21/03/008"
-              }
-            }
-          }
-        }
       }
     },
     "/results/": {
@@ -1882,7 +1710,7 @@
                       "is_locked": false,
                       "last_login_at": "2027-02-25T06:55:00+00:00",
                       "created_at": "2027-02-10T09:00:00+00:00",
-                      "assigned_polling_units": 2
+                      "assigned_polling_units": 1
                     }
                   ]
                 }
@@ -1964,7 +1792,7 @@
                     "is_locked": false,
                     "last_login_at": "2027-02-25T06:55:00+00:00",
                     "created_at": "2027-02-10T09:00:00+00:00",
-                    "assigned_polling_units": 2
+                    "assigned_polling_units": 1
                   },
                   "temporary_pin": "493021"
                 }
@@ -2034,7 +1862,7 @@
                     "is_locked": false,
                     "last_login_at": "2027-02-25T06:55:00+00:00",
                     "created_at": "2027-02-10T09:00:00+00:00",
-                    "assigned_polling_units": 2
+                    "assigned_polling_units": 1
                   },
                   "polling_units": []
                 }
@@ -2097,7 +1925,7 @@
                     "is_locked": false,
                     "last_login_at": "2027-02-25T06:55:00+00:00",
                     "created_at": "2027-02-10T09:00:00+00:00",
-                    "assigned_polling_units": 2
+                    "assigned_polling_units": 1
                   }
                 }
               }
@@ -2171,7 +1999,7 @@
                     "is_locked": false,
                     "last_login_at": "2027-02-25T06:55:00+00:00",
                     "created_at": "2027-02-10T09:00:00+00:00",
-                    "assigned_polling_units": 2
+                    "assigned_polling_units": 1
                   },
                   "temporary_pin": "804712"
                 }
@@ -2269,7 +2097,7 @@
         "tags": [
           "Admin"
         ],
-        "summary": "Assign polling units to an agent",
+        "summary": "Assign one polling unit to an agent",
         "description": "Who can call it: **admin**.",
         "responses": {
           "200": {
@@ -2288,7 +2116,7 @@
                     "is_locked": false,
                     "last_login_at": "2027-02-25T06:55:00+00:00",
                     "created_at": "2027-02-10T09:00:00+00:00",
-                    "assigned_polling_units": 2
+                    "assigned_polling_units": 1
                   }
                 }
               }
@@ -2331,14 +2159,10 @@
           "content": {
             "application/json": {
               "example": {
-                "mode": "add",
+                "mode": "replace",
                 "polling_unit_codes": [
-                  "20/21/03/008"
-                ],
-                "ward": {
-                  "lga": "kano_municipal",
-                  "ward_index": 3
-                }
+                  "20/21/03/007"
+                ]
               }
             }
           }
@@ -2733,7 +2557,7 @@
               "application/json": {
                 "example": {
                   "config": {
-                    "mode": "simulation",
+                    "mode": "live",
                     "publish_unverified": true,
                     "refresh_seconds": 10
                   },
@@ -2741,7 +2565,7 @@
                   "warnings": [
                     {
                       "level": "critical",
-                      "message": "…"
+                      "message": "\u2026"
                     }
                   ],
                   "stats": {
@@ -2780,7 +2604,7 @@
         "tags": [
           "Admin"
         ],
-        "summary": "Switch between simulation and live",
+        "summary": "Configure live result visibility",
         "description": "Who can call it: **admin**.",
         "responses": {
           "200": {

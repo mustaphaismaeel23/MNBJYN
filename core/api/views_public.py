@@ -16,7 +16,7 @@ def health(request):
 
 @endpoint(public=True, cache_seconds=3)
 def config(request):
-    """Which mode the Situation Room is in (simulation/live), plus the election and candidates."""
+    """Live Situation Room settings, the active election and candidates."""
     return json_response(services.config_payload())
 
 

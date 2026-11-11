@@ -54,33 +54,30 @@
 </style>
 {% endblock %}
 
+{% block extrahead %}{{ block.super }}<meta http-equiv="refresh" content="60">{% endblock %}
+
 {% block content %}
 <div class="ssbyn-dash">
   <div class="ssbyn-cards">
-    <div class="ssbyn-card"><b>{{ stats.total }}</b><span>Total registrations</span></div>
-    <div class="ssbyn-card warn"><b>{{ stats.new }}</b><span>Awaiting review</span></div>
-    <div class="ssbyn-card"><b>{{ stats.approved }}</b><span>Approved</span></div>
-    <div class="ssbyn-card"><b>{{ stats.week }}</b><span>Last 7 days</span></div>
-    <div class="ssbyn-card"><b>{{ stats.female }}</b><span>Female</span></div>
-    <div class="ssbyn-card"><b>{{ stats.male }}</b><span>Male</span></div>
-    <div class="ssbyn-card"><b>{{ stats.pwd }}</b><span>PWDs</span></div>
-    <div class="ssbyn-card warn"><b>{{ stats.no_pvc }}</b><span>No PVC yet</span></div>
-    <div class="ssbyn-card"><b>{{ current_election|yesno:"Yes,No" }}</b><span>Current election set</span></div>
-    <div class="ssbyn-card"><b>{{ stats.active_agents }} / {{ stats.agents }}</b><span>Active result agents</span></div>
-    <div class="ssbyn-card"><b>{{ stats.active_polling_units }} / {{ stats.polling_units }}</b><span>Active polling units</span></div>
-    <div class="ssbyn-card"><b>{{ stats.wards }}</b><span>Managed wards</span></div>
-    <div class="ssbyn-card warn"><b>{{ stats.results_to_review }}</b><span>Current results to review</span></div>
-    <div class="ssbyn-card"><b>{{ stats.verified_results }}</b><span>Current verified results</span></div>
+    <div class="ssbyn-card"><b>{{ stats.polling_units }}</b><span>Active polling units</span></div>
+    <div class="ssbyn-card"><b>{{ stats.agents }}</b><span>Registered agents</span></div>
+    <div class="ssbyn-card"><b>{{ stats.active_agents }}</b><span>Active agents</span></div>
+    <div class="ssbyn-card"><b>{{ stats.assigned_polling_units }}</b><span>Assigned polling units</span></div>
+    <div class="ssbyn-card warn"><b>{{ stats.unassigned_polling_units }}</b><span>Unassigned polling units</span></div>
+    <div class="ssbyn-card warn"><b>{{ stats.polling_units_yet_to_submit }}</b><span>Polling units yet to submit</span></div>
+    <div class="ssbyn-card"><b>{{ stats.results_submitted }}</b><span>Results submitted</span></div>
+    <div class="ssbyn-card warn"><b>{{ stats.results_to_review }}</b><span>Pending review</span></div>
+    <div class="ssbyn-card"><b>{{ stats.verified_results }}</b><span>Approved results</span></div>
+    <div class="ssbyn-card warn"><b>{{ stats.rejected_results }}</b><span>Rejected results</span></div>
+    <div class="ssbyn-card"><b>{{ stats.wards }}</b><span>Kano wards</span></div>
   </div>
 
   <div class="ssbyn-actions">
-    <a href="{% url 'admin:core_registration_changelist' %}?status__exact=new">Review new sign-ups</a>
-    <a class="alt" href="{% url 'admin:core_registration_changelist' %}">All registrations</a>
-    <a class="alt" href="{% url 'admin:core_sitesettings_changelist' %}">Change hero photo</a>
-    <a class="alt" href="{% url 'admin:core_galleryimage_add' %}">Add gallery photo</a>
-    <a class="alt" href="{% url 'admin:core_executive_changelist' %}">Executives</a>
-    <a class="alt" href="{% url 'admin:core_teammember_changelist' %}">Team members</a>
-    <a class="alt" href="/" target="_blank" rel="noopener">View website</a>
+    <a href="{% url 'admin:core_resultsubmission_changelist' %}?status__exact=submitted">Review submitted results</a>
+    <a class="alt" href="{% url 'admin:core_resultagent_changelist' %}">Manage agents</a>
+    <a class="alt" href="{% url 'admin:core_pollingunit_changelist' %}">Manage polling units</a>
+    <a class="alt" href="{% url 'admin:core_election_changelist' %}">Manage elections</a>
+    <a class="alt" href="/" target="_blank" rel="noopener">View results dashboard</a>
   </div>
 
   <div class="ssbyn-panel">
@@ -98,25 +95,17 @@
       <a href="{% url 'admin:core_pollingunit_changelist' %}">Polling units<span>Search, filter and activate polling locations</span></a>
       <a href="{% url 'admin:core_resultagent_changelist' %}">Result agents<span>Manage roles, assignments and temporary PINs</span></a>
       <a href="{% url 'admin:core_resultsubmission_changelist' %}">Result submissions<span>Review and verify submitted results</span></a>
-      <a href="{% url 'admin:core_situationroomconfig_changelist' %}">Situation Room settings<span>Choose simulation/live mode and publishing rules</span></a>
+      <a href="{% url 'admin:core_situationroomconfig_changelist' %}">Situation Room settings<span>Configure live results visibility and refresh interval</span></a>
       <a href="{% url 'admin:core_auditlog_changelist' %}">Audit log<span>Review results-system activity</span></a>
     </div>
   </div>
 
   <div class="ssbyn-panels">
     <div class="ssbyn-panel">
-      <h3>Registrations by LGA</h3>
+      <h3>Results reported by LGA</h3>
       {% for row in by_lga %}
-        <div class="bar-row"><span>{{ row.name }}</span><div class="bar"><i style="width:{{ row.pct }}%"></i></div><b>{{ row.total }}</b></div>
-      {% empty %}<p>No registrations yet.</p>{% endfor %}
-    </div>
-    <div class="ssbyn-panel">
-      <h3>Latest sign-ups</h3>
-      <ul>
-        {% for r in recent %}
-          <li><a href="{% url 'admin:core_registration_change' r.pk %}">{{ r.full_name }}</a><span>{{ r.get_lga_display }} &middot; {{ r.created_at|date:"j M, H:i" }}</span></li>
-        {% empty %}<li>No registrations yet.</li>{% endfor %}
-      </ul>
+        <div class="bar-row"><span>{{ row.name }}</span><div class="bar"><i style="width:{{ row.pct }}%"></i></div><b>{{ row.reported }}/{{ row.total }}</b></div>
+      {% empty %}<p>No polling units are loaded.</p>{% endfor %}
     </div>
   </div>
 </div>
